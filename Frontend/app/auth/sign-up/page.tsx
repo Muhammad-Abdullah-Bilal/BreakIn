@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Lock, Mail, User, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GlobeDemo } from "../globe/globe";
+import { GlobeDemo } from "../../globe/globe";
 import { createClient } from "@/lib/supabase/client";
 import { AuthError, Provider } from "@supabase/supabase-js";
 

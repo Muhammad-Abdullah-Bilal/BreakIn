@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GlobeDemo } from "../globe/globe";  // Assuming this is the correct path
+import { GlobeDemo } from "../../globe/globe";  // Assuming this is the correct path
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
