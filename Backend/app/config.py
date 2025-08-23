@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+# Configuration MongoDB
+MONGO_URI = os.getenv("MONGO_URI", "MONGO_URI")
+DB_NAME = os.getenv("DB_NAME", "breakin")
+
 class Settings(BaseSettings):
     # Database
     MONGO_URI: str = Field("mongodb://localhost:27017", env="MONGO_URI")
@@ -74,6 +78,11 @@ def connect_to_mongodb() -> bool:
 
 
 def get_database() -> Database:
+    MONGO_URI = os.getenv("MONGO_URI", "MONGO_URI")
+    DB_NAME = os.getenv("DB_NAME", "breakin")
+    client = MongoClient(MONGO_URI)
+    return client[DB_NAME]
+        
     """Return the active Database instance (connects lazily if needed)."""
     global client, db
     if db is None:
