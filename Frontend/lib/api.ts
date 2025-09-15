@@ -121,11 +121,11 @@ export async function getUser(pseudonym: string, token?: string): Promise<UserRe
 }
 
 export async function loginUser(
-  email: string, 
+  email: string,
   password: string
-): Promise<{ user: UserResponse; token: string }> {
+): Promise<{ user: UserResponse; token: string; message?: string }> {
   try {
-    const response = await fetchWithTimeout(`${BASE_URL}/auth/login`, {
+    const response = await fetchWithTimeout(`${BASE_URL}/auth/signin`, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });

@@ -1,19 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Lock, Mail, User, Eye, EyeOff } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import React, { useState } from "react";
 import { GlobeDemo } from "../../globe/globe";
-import { createClient } from "@/lib/supabase/client";
-import { AuthError, Provider } from "@supabase/supabase-js";
 
 type LoadingState = 'idle' | 'loading' | 'oauth';
 
@@ -28,7 +24,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState<LoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  const { signUp } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,73 +44,27 @@ export default function SignUpPage() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            full_name: name,
-          }
-        }
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setError(null);
-        alert("Check your email for the confirmation link!");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred");
+      await signUp(name, email, password)
+      setError(null)
+      alert('Account created. You can now sign in.')
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred')
     } finally {
-      setLoading('idle');
+      setLoading('idle')
     }
   };
 
-  const handleOAuthSignIn = async (provider: Provider) => {
-    setLoading('oauth');
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-
-      if (error) {
-        setError(error.message);
-        setLoading('idle');
-      }
-    } catch (err) {
-      setError("OAuth sign-in failed");
-      setLoading('idle');
-    }
-  };
+  const handleOAuthSignIn = async (_provider: any) => {
+    setError('OAuth sign-in is not available')
+  }
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading('loading');
     setError(null);
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        // Redirect to dashboard or home page
-        window.location.href = '/dashboard';
-      }
-    } catch (err) {
-      setError("An unexpected error occurred");
-    } finally {
-      setLoading('idle');
-    }
+    setError('Please use the Login page to sign in')
+    setLoading('idle')
   };
 
   return (

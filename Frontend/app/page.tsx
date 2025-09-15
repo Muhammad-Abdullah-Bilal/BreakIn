@@ -1,32 +1,18 @@
 // app/page.tsx
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/contexts/AuthContext"
 import {
-  Code2,
-  Users,
-  Trophy,
-  Zap,
-  Target,
-  GitBranch,
-  Clock,
-  Star,
-  ArrowRight,
-  CheckCircle,
-  Building2,
-  GraduationCap,
-  UserCheck,
-  Menu,
-  X,
+    ArrowRight,
+    Code2,
+    Menu,
+    X
 } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/lib/contexts/AuthContext"
+import { useState } from "react"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("developers")
@@ -75,14 +61,14 @@ export default function HomePage() {
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <Avatar>
-                      <AvatarImage src={developer?.avatar_url || user.user_metadata?.avatar_url || "/placeholder-user.jpg"} />
+                      <AvatarImage src={developer?.avatar_url || "/placeholder-user.jpg"} />
                       <AvatarFallback>
-                        {developer?.codename?.charAt(0) || user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0)}
+                        {developer?.codename?.charAt(0) || user?.username?.charAt(0) || user?.email?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-right">
                       <div className="text-white font-medium text-sm">
-                        {developer?.codename || user.user_metadata?.full_name || 'Developer'}
+                        {developer?.codename || user?.username || 'Developer'}
                       </div>
                       <div className="text-gray-400 text-xs">
                         {developer ? `Level: ${developer.level}` : 'Setting up profile...'}
@@ -123,7 +109,7 @@ export default function HomePage() {
                 variant="outline"
                 className="border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white bg-transparent"
               >
-                <Link href="/auth/signin">Sign In</Link>
+                <Link href="/auth/sign-in">Sign In</Link>
               </Button>
             </div>
 

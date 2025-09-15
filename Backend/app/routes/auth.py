@@ -58,7 +58,17 @@ def signin(credentials: UserSignin):
     if not bcrypt.checkpw(credentials.password.encode(), user["password"].encode()):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    return JSONResponse(content={"message": "Signed in successfully", "token": "jwt_token"})
+    # Return token and basic user identity for frontend session management
+    user_out = {
+        "username": user.get("username", ""),
+        "email": user.get("email", ""),
+        "pseudonym": user.get("pseudonym", "")
+    }
+    return JSONResponse(content={
+        "message": "Signed in successfully",
+        "token": "jwt_token",
+        "user": user_out
+    })
 
 # 🔍 Lecture d’un utilisateur par pseudonyme
 @router.get("/user/{pseudonym}", response_model=UserOut)

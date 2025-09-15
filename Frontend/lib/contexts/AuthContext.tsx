@@ -1,154 +1,105 @@
-// lib/contexts/AuthContext.tsx - Fixed version with proper sync timing
+// lib/contexts/AuthContext.tsx - Mongo-only auth
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
+import { loginUser, signupUser, type UserResponse } from '@/lib/api'
 import { Developer } from '@/lib/models/types'
+import { createContext, useContext, useEffect, useState } from 'react'
+
+type AuthUser = UserResponse | null
 
 interface AuthContextType {
-  user: User | null
-  session: Session | null
+  user: AuthUser
+  token: string | null
   developer: Developer | null
   loading: boolean
+  signIn: (email: string, password: string) => Promise<void>
+  signUp: (username: string, email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   syncUserProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const STORAGE_KEY = 'breakin_auth'
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<AuthUser>(null)
+  const [token, setToken] = useState<string | null>(null)
   const [developer, setDeveloper] = useState<Developer | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createClient()
-
-  // Sync user profile with MongoDB - pass user explicitly to avoid race conditions
-  const syncUserProfile = async (userToSync?: User) => {
-    const targetUser = userToSync || user
-    
-    if (!targetUser) {
-      console.log('❌ No user to sync')
-      return null
-    }
-
-    console.log('🔄 Syncing user profile for:', targetUser.id)
-
-    try {
-      const response = await fetch('/api/auth/sync-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Sync successful:', data.developer?.codename || 'existing user')
-        setDeveloper(data.developer)
-        return data.developer
-      } else {
-        const errorText = await response.text()
-        console.error('❌ Sync failed:', response.status, errorText)
-      }
-    } catch (error) {
-      console.error('❌ Error syncing user profile:', error)
-    }
-    return null
-  }
-
-  // Fetch developer profile from MongoDB
-  const fetchDeveloperProfile = async (userId: string, userForSync?: User): Promise<Developer | null> => {
-    console.log('🔍 Fetching developer profile for:', userId)
-    
-    try {
-      const response = await fetch(`/api/developers/${userId}`)
-      if (response.ok) {
-        const developerData = await response.json()
-        console.log('✅ Developer found:', developerData.codename)
-        setDeveloper(developerData)
-        return developerData
-      } else if (response.status === 404) {
-        console.log('❌ Developer not found, syncing profile...')
-        // If developer doesn't exist, sync the profile with the user object
-        return await syncUserProfile(userForSync)
-      } else {
-        console.error('❌ Error fetching developer:', response.status)
-      }
-    } catch (error) {
-      console.error('❌ Error fetching developer profile:', error)
-    }
-    return null
-  }
-
-  // Sign out function
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut()
-      setUser(null)
-      setSession(null)
-      setDeveloper(null)
-    } catch (error) {
-      console.error('Error signing out:', error)
-    }
-  }
-
+  // Load persisted session
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      console.log('🔍 Getting initial session...')
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      console.log('Session found:', !!session, session?.user?.email)
-      
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        await fetchDeveloperProfile(session.user.id, session.user)
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
+      if (raw) {
+        const parsed = JSON.parse(raw) as { user: AuthUser; token: string }
+        setUser(parsed.user)
+        setToken(parsed.token)
+        // Try to fetch developer using pseudonym as stable id for now
+        if (parsed.user?.pseudonym) {
+          // We don't have a direct mapping; attempt developer sync by email/pseudonym
+          syncUserProfile(parsed.user)
+        }
       }
-      
+    } catch {}
+    setLoading(false)
+  }, [])
+
+  const persist = (u: AuthUser, t: string | null) => {
+    setUser(u)
+    setToken(t)
+    if (typeof window !== 'undefined') {
+      if (u && t) localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: u, token: t }))
+      else localStorage.removeItem(STORAGE_KEY)
+    }
+  }
+
+  // Sync user profile with MongoDB via Next API (no Supabase)
+  const syncUserProfile = async (userOverride?: AuthUser) => {
+    const target = userOverride ?? user
+    if (!target) return
+    try {
+      const res = await fetch('/api/auth/sync-user', { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setDeveloper(data.developer)
+      }
+    } catch (e) {
+      console.error('syncUserProfile failed', e)
+    }
+  }
+
+  const signIn = async (email: string, password: string) => {
+    setLoading(true)
+    try {
+      const { user: u, token: t } = await loginUser(email, password)
+      persist(u, t)
+      // On first sign-in, try ensure developer exists
+      await syncUserProfile(u)
+    } finally {
       setLoading(false)
     }
-
-    getInitialSession()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 Auth state changed:', event, session?.user?.email)
-        
-        // Set state first
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('✅ User signed in, fetching/syncing profile...')
-          // User just signed in, fetch or sync their profile
-          await fetchDeveloperProfile(session.user.id, session.user)
-        } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out')
-          // User signed out, clear developer data
-          setDeveloper(null)
-        }
-
-        setLoading(false)
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
-  const value = {
-    user,
-    session,
-    developer,
-    loading,
-    signOut,
-    syncUserProfile: () => syncUserProfile()
   }
+
+  const signUp = async (username: string, email: string, password: string) => {
+    setLoading(true)
+    try {
+      const u = await signupUser({ username, email, password })
+      // Optional: auto sign-in after signup requires backend token issuance; skip for now
+      persist(u, null)
+      await syncUserProfile(u)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signOut = async () => {
+    persist(null, null)
+    setDeveloper(null)
+  }
+
+  const value = { user, token, developer, loading, signIn, signUp, signOut, syncUserProfile }
 
   return (
     <AuthContext.Provider value={value}>

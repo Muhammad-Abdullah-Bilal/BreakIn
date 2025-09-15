@@ -1,22 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { Code2, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import Link from "next/link";
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Lock, Mail, Eye, EyeOff } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { GlobeDemo } from "../../globe/globe";  // Assuming this is the correct path
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import {
-  Code2
-} from "lucide-react"
+import React, { useState } from "react";
+import { GlobeDemo } from "../../globe/globe"; // Assuming this is the correct path
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,25 +20,21 @@ export default function SignInPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const supabase = createClient();
   const router = useRouter();
+  const { signIn } = useAuth();
 
     const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-    });
-
-    setLoading(false);
-
-    if (error) {
-        setErrorMessage(error.message || "Error signing in");
-    } else {
-        router.push('/');
+    try {
+      await signIn(email.trim(), password)
+      router.push('/')
+    } catch (e: any) {
+      setErrorMessage(e?.message || 'Error signing in')
+    } finally {
+      setLoading(false)
     }
     };
 
@@ -54,17 +45,13 @@ export default function SignInPage() {
     setLoading(true);
     setErrorMessage("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: "demo@example.com",
-      password: "password123",
-    });
-
-    setLoading(false);
-
-    if (error) {
-      setErrorMessage(error.message || "Demo login failed");
-    } else {
-      router.push('/');
+    try {
+      await signIn('demo@example.com', 'password123')
+      router.push('/')
+    } catch (e: any) {
+      setErrorMessage(e?.message || 'Demo login failed')
+    } finally {
+      setLoading(false)
     }
   };
 

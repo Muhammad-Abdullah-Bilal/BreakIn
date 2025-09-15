@@ -1,6 +1,6 @@
 // ===== FILE: app/api/developers/[id]/route.ts =====
-import { getDatabase } from '@/lib/mongodb'
 import { Developer } from '@/lib/models/types'
+import { getDatabase } from '@/lib/mongodb'
 
 export async function GET(
   request: Request,
@@ -12,6 +12,7 @@ export async function GET(
     console.log('🔍 Fetching developer:', id)
     
     const db = await getDatabase()
+    // id is a generic identity (pseudonym/email-derived). We key by user_id field.
     const developer = await db.collection<Developer>('developers').findOne({ 
       user_id: id 
     })

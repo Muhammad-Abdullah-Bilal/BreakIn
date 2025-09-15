@@ -1,0 +1,1 @@
+// useErrorHandler: Wrap async calls

@@ -1,8 +1,9 @@
+const path = require('path')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Configuration de base
   reactStrictMode: true,
-  swcMinify: true,
   output: 'standalone',
   distDir: '.next',
   trailingSlash: true,
@@ -88,18 +89,17 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // Configuration pour le déploiement standalone
-  experimental: {
-    outputFileTracingRoot: '../',
-    outputFileTracingExcludes: {
-      '*': [
-        'node_modules/**/*',
-        '**/node_modules/**/*',
-        '.git/**/*',
-        '.next/**/*',
-        'public/**/*',
-      ]
-    }
+  // Configuration pour le déploiement standalone (Next.js 15)
+  // Les options outputFileTracing* ne sont plus sous "experimental"
+  outputFileTracingRoot: path.resolve(__dirname, '..'),
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/**/*',
+      '**/node_modules/**/*',
+      '.git/**/*',
+      '.next/**/*',
+      'public/**/*',
+    ]
   }
 }
 

@@ -1,42 +1,42 @@
 // app/developer-dashboard/page.tsx
 "use client"
 
-import { useState } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useActivities, useAvailableSprints, useSkillProgress } from "@/hooks/use-data"
+import { useAuth } from "@/lib/contexts/AuthContext"
 import {
-  Code2,
-  Users,
-  Trophy,
-  TrendingUp,
-  Bell,
-  Search,
-  Filter,
-  Star,
-  Eye,
-  MessageSquare,
-  Calendar,
-  Play,
-  Target,
-  Flame,
-  Award,
-  BookOpen,
-  Lightbulb,
-  Rocket,
-  Building2,
-  Menu,
-  X,
+    Award,
+    Bell,
+    BookOpen,
+    Building2,
+    Calendar,
+    Code2,
+    Eye,
+    Filter,
+    Flame,
+    Lightbulb,
+    Menu,
+    MessageSquare,
+    Play,
+    Rocket,
+    Search,
+    Star,
+    Target,
+    TrendingUp,
+    Trophy,
+    Users,
+    X,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/contexts/AuthContext"
-import { useAvailableSprints, useActivities, useSkillProgress } from "@/hooks/use-data"
+import { useState } from "react"
 
 export default function DeveloperDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -47,8 +47,9 @@ export default function DeveloperDashboard() {
   
   // Fetch data using custom hooks
   const { sprints: availableSprints, loading: sprintsLoading } = useAvailableSprints()
-  const { activities: recentActivity, loading: activitiesLoading } = useActivities(user?.id)
-  const { skills: skillProgress, loading: skillsLoading } = useSkillProgress(user?.id)
+  const identity = user?.pseudonym || user?.username || user?.email || undefined
+  const { activities: recentActivity, loading: activitiesLoading } = useActivities(identity)
+  const { skills: skillProgress, loading: skillsLoading } = useSkillProgress(identity)
 
   // Redirect to sign-in if not authenticated
   if (!authLoading && !user) {
@@ -123,14 +124,14 @@ export default function DeveloperDashboard() {
         <div className="mt-auto">
           <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
             <Avatar>
-              <AvatarImage src={developer?.avatar_url || user?.user_metadata?.avatar_url || "/placeholder-user.jpg"} />
+              <AvatarImage src={developer?.avatar_url || "/placeholder-user.jpg"} />
               <AvatarFallback>
-                {developer?.codename?.charAt(0) || user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0)}
+                {developer?.codename?.charAt(0) || user?.username?.charAt(0) || user?.email?.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="text-white font-medium text-sm truncate">
-                {developer?.codename || user?.user_metadata?.full_name || 'Developer'}
+                {developer?.codename || user?.username || 'Developer'}
               </div>
               <div className="text-gray-400 text-xs">
                 {developer?.level || 'Beginner'} • {myStats.reputation} rep
@@ -206,7 +207,7 @@ export default function DeveloperDashboard() {
                 🔧 Debug: User Not Synced to MongoDB
               </CardTitle>
               <CardDescription className="text-red-200">
-                User ID: {user.id.slice(0, 8)}... - Not found in MongoDB database
+                Identity: {(user.pseudonym || user.email || user.username || 'unknown').toString()} - Not found in MongoDB database
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -219,9 +220,13 @@ export default function DeveloperDashboard() {
                 <Button 
                   className="bg-red-600 hover:bg-red-700 text-white"
                   onClick={async () => {
-                    console.log('🔄 Manual sync triggered for user:', user.id)
+                    console.log('🔄 Manual sync triggered for user:', user)
                     try {
-                      const response = await fetch('/api/auth/sync-user', { method: 'POST' })
+                      const response = await fetch('/api/auth/sync-user', { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: user.email, pseudonym: user.pseudonym || user.username })
+                      })
                       const data = await response.json()
                       console.log('✅ Sync result:', data)
                       
