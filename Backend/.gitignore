@@ -87,3 +87,21 @@ coverage.xml
 secrets.json
 api_keys.txt
 credentials.json
+
+# Docker
+.dockerignore
+
+# Railway
+railway.toml
+
+# Additional virtual environment patterns
+.venv/
+venv*/
+env*/
+
+# Node modules (if any)
+node_modules/
+
+# Test artifacts
+.tox/
+.nox/
