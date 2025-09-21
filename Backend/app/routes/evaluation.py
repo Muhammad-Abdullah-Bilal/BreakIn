@@ -179,25 +179,6 @@ async def get_evaluation(sprint_id: str, user_id: str):
     
     return evaluation
 
-        from app.models.evaluation import TeamEvaluationRequest
-        request_data = TeamEvaluationRequest(**team_metrics)
-        
-        # Envoyer à l'IA pour évaluation
-        evaluator = AIEvaluator()
-        evaluation = await evaluator.evaluate_team_performance(request_data)
-        
-        # Stocker les résultats
-        db.sprint_evaluations.insert_one({
-            "sprint_id": sprint_id,
-            "evaluation": evaluation.dict(),
-            "evaluated_at": datetime.now(),
-            "ai_model": "breakin-evaluator-v1"
-        })
-        
-        return evaluation
-        
-    except Exception as e:
-        raise HTTPException(500, f"Evaluation failed: {str(e)}")
 
 @router.get("/sprint/{sprint_id}/evaluation")
 async def get_sprint_evaluation(sprint_id: str):

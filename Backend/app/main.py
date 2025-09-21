@@ -15,19 +15,19 @@ from app.routes import auth, sprint, feedback, evaluation
 from app.routes.auth import router as auth_router
 
 # Import new sprint task routes
-from app.routes.sprints.task_routes import router as task_router
-from app.routes.sprints.websocket_routes import router as websocket_router
+# from app.routes.sprints.task_routes import router as task_router
+# from app.routes.sprints.websocket_routes import router as websocket_router
 
 # Import services
-from app.services.realtime_service import RealtimeService
+# from app.services.realtime_service import RealtimeService
 from app.config import settings, connect_to_mongodb, close_mongodb_connection
 
 ### for gpt5-evaluator
-from app.evaluator import evaluate_team_llm
+# from app.evaluator import evaluate_team_llm
 from app.sample_data import example_team  # optional test data
 
 # Initialize realtime service
-realtime_service = RealtimeService()
+# realtime_service = RealtimeService()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -60,8 +60,8 @@ app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
 app.include_router(evaluation.router, prefix="/evaluation", tags=["Evaluation"])
 
 # Include new sprint task routes
-app.include_router(task_router, prefix="/api/sprints", tags=["Sprint Tasks"])
-app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
+# app.include_router(task_router, prefix="/api/sprints", tags=["Sprint Tasks"])
+# app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
 
 @app.get("/")
 def root():
@@ -70,13 +70,13 @@ def root():
 @app.on_event("startup")
 async def startup_db_client():
     """Initialize database connection on startup."""
-    await connect_to_mongodb()
+    connect_to_mongodb()
     logger.info("Database connected successfully")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     """Close database connection on shutdown."""
-    await close_mongodb_connection()
+    close_mongodb_connection()
     logger.info("Database connection closed")
 
 # Error handlers
