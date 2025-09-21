@@ -26,8 +26,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code (excluding virtual environments)
 COPY . .
+
+# Remove any virtual environment directories that might have been copied
+RUN find /app -type d -name "venv" -exec rm -rf {} + 2>/dev/null || true \
+    && find /app -type d -name "env" -exec rm -rf {} + 2>/dev/null || true \
+    && find /app -type d -name ".venv" -exec rm -rf {} + 2>/dev/null || true
 
 # Create a non-root user
 RUN adduser --disabled-password --gecos '' appuser \
