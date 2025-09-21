@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class RoleRequirements(BaseModel):
     """Requirements for a role to match against."""
     title: str
-    seniority: str = "any"  # junior, mid, senior, any
+    seniority: str = "any_level"  # junior, mid, senior, any_level
     must_have: List[str]  # required skills
     nice_to_have: List[str] = []  # preferred skills
     culture: List[str] = []  # culture tags

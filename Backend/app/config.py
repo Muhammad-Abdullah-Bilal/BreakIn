@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import logging
+import os
 from typing import List, Optional
 
 from pydantic import Field, AnyHttpUrl
@@ -18,6 +19,7 @@ from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
 
 class Settings(BaseSettings):
     # Database
@@ -38,6 +40,16 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_LEVEL: str = Field(default="INFO")
+
+    # OpenAI Configuration
+    OPENAI_API_KEY: str = Field("", env="OPENAI_API_KEY")
+    OPENAI_MODEL: str = Field("gpt-4o", env="OPENAI_MODEL")
+    OPENAI_MAX_TOKENS: int = Field(4000, env="OPENAI_MAX_TOKENS")
+
+    # Job Scraping Configuration
+    JOB_SCRAPING_ENABLED: bool = Field(True, env="JOB_SCRAPING_ENABLED")
+    SCRAPING_INTERVAL_HOURS: int = Field(6, env="SCRAPING_INTERVAL_HOURS")
+    MAX_JOBS_PER_PLATFORM: int = Field(50, env="MAX_JOBS_PER_PLATFORM")
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
@@ -82,14 +94,14 @@ def get_database() -> Database:
 
 
 def close_mongodb_connection() -> None:
-    """Close MongoDB connection."""
+    """Close the MongoDB connection if it exists."""
     global client, db
     if client is not None:
         try:
             client.close()
             logger.info("Closed MongoDB connection")
-        except Exception as e:
-            logger.error(f"Error closing MongoDB connection: {e}")
+        except Exception:
+            logger.exception("Error while closing MongoDB connection")
         finally:
             client = None
             db = None
