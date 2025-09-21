@@ -1,3 +1,5 @@
+"use client";
+
 // FeedbackForm: structured feedback (scores + notes)
 import React, { useState } from 'react';
 import { Feedback, FeedbackRubric } from '../types/feedback';

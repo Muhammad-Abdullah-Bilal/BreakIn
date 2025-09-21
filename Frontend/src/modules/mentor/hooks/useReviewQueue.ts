@@ -1,3 +1,5 @@
+"use client";
+
 // useReviewQueue hook
 
 import { useCallback, useEffect, useState } from "react";

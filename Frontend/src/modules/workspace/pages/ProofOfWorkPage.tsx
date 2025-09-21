@@ -1,3 +1,5 @@
+"use client";
+
 // ProofOfWorkPage: summary view of proof-of-work
 
 import { ProofBadge } from "../components/ProofBadge";

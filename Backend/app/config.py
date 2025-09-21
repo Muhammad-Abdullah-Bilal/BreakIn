@@ -7,6 +7,7 @@ active database instance.
 
 from __future__ import annotations
 
+import os
 import logging
 import os
 from typing import List, Optional
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = Field(default="redis://localhost:6379/0")
 
     # CORS
-    ALLOWED_ORIGINS: List[AnyHttpUrl] = Field(default_factory=lambda: ["http://localhost:3000"])
+    ALLOWED_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 
     # Logging
     LOG_LEVEL: str = Field(default="INFO")
@@ -50,9 +51,7 @@ class Settings(BaseSettings):
     SCRAPING_INTERVAL_HOURS: int = Field(6, env="SCRAPING_INTERVAL_HOURS")
     MAX_JOBS_PER_PLATFORM: int = Field(50, env="MAX_JOBS_PER_PLATFORM")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

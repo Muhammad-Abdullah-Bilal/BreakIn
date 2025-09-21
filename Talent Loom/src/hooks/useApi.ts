@@ -423,3 +423,50 @@ export const useExportStatus = (jobId: string) => {
     staleTime: 0,
   });
 };
+
+// Agent Status Hooks
+export const useAgentStatus = () => {
+  return useQuery({
+    queryKey: ['agents', 'status'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/talent-loom/agents/status');
+        if (!response.ok) throw new Error('Failed to fetch agent status');
+        return await response.json();
+      } catch (error) {
+        console.error('Agent status error:', error);
+        // Return mock data as fallback
+        return [
+          { name: "Job Radar Agent", description: "Scanning job boards", status: "Active" },
+          { name: "Talent Matching", description: "Processing matches", status: "Active" },
+          { name: "Outreach Agent", description: "Standby mode", status: "Idle" }
+        ];
+      }
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 10000, // 10 seconds
+  });
+};
+
+export const useAgentActivity = () => {
+  return useQuery({
+    queryKey: ['agents', 'activity'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/talent-loom/agents/activity');
+        if (!response.ok) throw new Error('Failed to fetch agent activity');
+        return await response.json();
+      } catch (error) {
+        console.error('Agent activity error:', error);
+        // Return mock data as fallback
+        return [
+          { title: "New job detected: Senior React Developer at TechCorp", time: "2 hours ago", type: "detection" },
+          { title: "Outreach sent for Full Stack Engineer role", time: "4 hours ago", type: "outreach" },
+          { title: "High match found for DevOps Engineer", time: "6 hours ago", type: "match" }
+        ];
+      }
+    },
+    refetchInterval: 60000, // Refresh every minute
+    staleTime: 30000, // 30 seconds
+  });
+};

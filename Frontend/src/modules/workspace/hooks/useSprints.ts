@@ -1,3 +1,5 @@
+"use client";
+
 // useSprints hook
 import { useState } from "react";
 import type { Sprint } from "../types/sprint";

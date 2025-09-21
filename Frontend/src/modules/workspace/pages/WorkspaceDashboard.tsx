@@ -1,3 +1,5 @@
+"use client";
+
 // WorkspaceDashboard: landing page for dev workspace
 import { SprintCard } from "../components/SprintCard";
 import { useSprints } from "../hooks/useSprints";

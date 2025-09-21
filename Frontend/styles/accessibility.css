@@ -1,0 +1,518 @@
+/**
+ * Mobile & Accessibility Optimized CSS
+ * 
+ * Enhanced styles for mobile-first design and accessibility compliance.
+ * Implements WCAG 2.1 AA standards with responsive design patterns.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Layer - Accessibility Foundations */
+@layer base {
+  /* Enhanced focus management */
+  *:focus {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* Remove outline for pointer users, keep for keyboard users */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Ensure focus-visible works properly */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 0 0% 0%;
+      --muted: 0 0% 85%;
+      --muted-foreground: 0 0% 15%;
+      --border: 0 0% 50%;
+    }
+
+    .dark {
+      --background: 0 0% 0%;
+      --foreground: 0 0% 100%;
+      --muted: 0 0% 15%;
+      --muted-foreground: 0 0% 85%;
+      --border: 0 0% 50%;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Enhanced font rendering */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Improve text scaling on iOS */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Screen reader only utility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Safe area support for devices with notches */
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pl-safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .pr-safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Component Layer - Enhanced UI Components */
+@layer components {
+  /* Enhanced Button Component */
+  .btn-enhanced {
+    @apply relative inline-flex items-center justify-center;
+    @apply min-h-[44px] min-w-[44px]; /* Touch target size */
+    @apply px-4 py-2 text-sm font-medium;
+    @apply rounded-md border border-transparent;
+    @apply transition-all duration-200 ease-in-out;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  /* Reduce hover effects on touch devices */
+  @media (hover: none) {
+    .btn-enhanced:hover {
+      transform: none;
+    }
+  }
+
+  /* Enhanced Input Component */
+  .input-enhanced {
+    @apply block w-full min-h-[44px] px-3 py-2;
+    @apply text-base border border-input rounded-md;
+    @apply bg-background text-foreground;
+    @apply transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply focus:border-primary;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply placeholder:text-muted-foreground;
+  }
+
+  /* iOS styling fixes */
+  .input-enhanced {
+    -webkit-appearance: none;
+    border-radius: 6px; /* Override iOS default */
+  }
+
+  /* Enhanced Card Component */
+  .card-enhanced {
+    @apply bg-card text-card-foreground;
+    @apply border border-border rounded-lg;
+    @apply shadow-sm hover:shadow-md;
+    @apply transition-shadow duration-200;
+    @apply focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2;
+  }
+
+  /* Mobile-optimized navigation */
+  .nav-mobile {
+    @apply fixed bottom-0 left-0 right-0 z-50;
+    @apply bg-background border-t border-border;
+    @apply pb-safe-bottom;
+    @apply flex items-center justify-around;
+    @apply min-h-[60px];
+  }
+
+  .nav-mobile-item {
+    @apply flex flex-col items-center justify-center;
+    @apply min-h-[44px] min-w-[44px] px-2 py-1;
+    @apply text-xs font-medium text-muted-foreground;
+    @apply transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply rounded-md;
+  }
+
+  .nav-mobile-item.active {
+    @apply text-primary;
+  }
+
+  /* Responsive grid system */
+  .grid-responsive {
+    @apply grid gap-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .grid-responsive-cards {
+    @apply grid gap-4;
+    @apply grid-cols-1 md:grid-cols-2 xl:grid-cols-3;
+  }
+
+  /* Mobile-friendly modal */
+  .modal-mobile {
+    @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center;
+    @apply p-4 pt-safe-top pb-safe-bottom;
+  }
+
+  .modal-content-mobile {
+    @apply w-full max-w-lg;
+    @apply bg-background border border-border rounded-t-lg sm:rounded-lg;
+    @apply shadow-lg;
+    @apply max-h-[90vh] overflow-y-auto;
+  }
+
+  /* Accessible skip link */
+  .skip-link {
+    @apply absolute top-4 left-4 z-50;
+    @apply px-4 py-2 bg-primary text-primary-foreground;
+    @apply rounded-md shadow-lg;
+    @apply font-medium;
+    @apply transform -translate-y-full opacity-0;
+    @apply transition-all duration-200;
+    @apply focus:translate-y-0 focus:opacity-100;
+  }
+
+  /* Enhanced form layouts */
+  .form-group {
+    @apply space-y-2;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-foreground;
+    @apply mb-1;
+  }
+
+  .form-label.required::after {
+    content: ' *';
+    @apply text-destructive;
+  }
+
+  .form-error {
+    @apply text-sm text-destructive;
+    @apply flex items-center gap-1;
+  }
+
+  .form-help {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Responsive table wrapper */
+  .table-responsive {
+    @apply w-full overflow-x-auto;
+    @apply border border-border rounded-lg;
+  }
+
+  .table-responsive table {
+    @apply w-full border-collapse;
+  }
+
+  .table-responsive th,
+  .table-responsive td {
+    @apply px-4 py-2 text-left border-b border-border;
+    @apply min-w-[100px]; /* Prevent column squashing */
+  }
+
+  /* Mobile-optimized toast notifications */
+  .toast-mobile {
+    @apply fixed top-4 left-4 right-4 z-50;
+    @apply bg-background border border-border rounded-lg;
+    @apply shadow-lg p-4;
+    @apply flex items-start gap-3;
+    @apply transform transition-all duration-300 ease-in-out;
+  }
+
+  /* Loading states */
+  .loading-skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  .loading-spinner {
+    @apply animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full;
+  }
+
+  /* High contrast mode enhancements */
+  @media (prefers-contrast: high) {
+    .btn-enhanced {
+      @apply border-2 border-current;
+    }
+
+    .input-enhanced {
+      @apply border-2 border-current;
+    }
+
+    .card-enhanced {
+      @apply border-2 border-current;
+    }
+  }
+}
+
+/* Utilities Layer - Custom Utilities */
+@layer utilities {
+  /* Touch-friendly spacing */
+  .touch-spacing {
+    @apply space-y-4 sm:space-y-6;
+  }
+
+  .touch-spacing > * + * {
+    margin-top: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .touch-spacing > * + * {
+      margin-top: 1.5rem;
+    }
+  }
+
+  /* Responsive text truncation */
+  .truncate-mobile {
+    @apply truncate sm:text-clip sm:whitespace-normal;
+  }
+
+  /* Mobile-first responsive padding */
+  .p-mobile {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+
+  .px-mobile {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .py-mobile {
+    @apply py-4 sm:py-6 lg:py-8;
+  }
+
+  /* Safe scrolling for mobile */
+  .scroll-safe {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Prevent zoom on double tap (iOS) */
+  .no-zoom {
+    touch-action: manipulation;
+  }
+
+  /* Enhanced focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+
+  .focus-ring-inset {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset;
+  }
+
+  /* Accessible color utilities */
+  .text-accessible {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  .text-accessible-muted {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+
+  .bg-accessible {
+    @apply bg-white dark:bg-gray-900;
+  }
+
+  .bg-accessible-muted {
+    @apply bg-gray-50 dark:bg-gray-800;
+  }
+
+  /* Mobile-specific utilities */
+  .mobile-only {
+    @apply block sm:hidden;
+  }
+
+  .desktop-only {
+    @apply hidden sm:block;
+  }
+
+  .tablet-up {
+    @apply hidden md:block;
+  }
+
+  /* Gesture-friendly containers */
+  .swipe-container {
+    @apply relative overflow-hidden;
+    touch-action: pan-x;
+  }
+
+  .pull-to-refresh {
+    @apply relative;
+    touch-action: pan-y;
+  }
+
+  /* Enhanced interactive states */
+  .interactive {
+    @apply transition-all duration-200 ease-in-out;
+    @apply hover:scale-[1.02] active:scale-[0.98];
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+
+  @media (hover: none) {
+    .interactive:hover {
+      transform: none;
+    }
+  }
+
+  /* Optimized scrollbars */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--border));
+  }
+
+  /* Print optimizations */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    .print-break-before {
+      page-break-before: always;
+    }
+
+    .print-break-after {
+      page-break-after: always;
+    }
+
+    * {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+  }
+}
+
+/* Animations for reduced motion users */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
+
+  .animate-pulse {
+    animation: none;
+  }
+
+  .animate-bounce {
+    animation: none;
+  }
+
+  /* Provide alternative visual feedback */
+  .loading-spinner {
+    @apply opacity-50;
+  }
+}
+
+/* Custom animations that respect motion preferences */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Respect reduced motion for custom animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
+    animation: none;
+  }
+}

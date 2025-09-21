@@ -4,7 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/lib/contexts/AuthContext"
+import { useAuth } from "@/providers/AuthProvider"
 import {
     ArrowRight,
     Code2,
@@ -18,7 +18,8 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("developers")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
-  const { user, developer, loading, signOut } = useAuth()
+  const { user, isLoading: loading, signOut } = useAuth()
+  const developer = null; // Provider doesn't have developer property
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)

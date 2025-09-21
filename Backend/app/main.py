@@ -249,13 +249,13 @@ else:
     @app.on_event("startup")
     async def startup_db_client():
         """Initialize database connection on startup."""
-        await connect_to_mongodb()
+        connect_to_mongodb()
         logger.info("Database connected successfully")
 
     @app.on_event("shutdown")
     async def shutdown_db_client():
         """Close database connection on shutdown."""
-        await close_mongodb_connection()
+        close_mongodb_connection()
         logger.info("Database connection closed")
 
 if __name__ == "__main__":

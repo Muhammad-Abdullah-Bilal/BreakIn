@@ -1,3 +1,5 @@
+"use client";
+
 import { useRecruiterDashboard } from "../hooks/useRecruiterDashboard";
 import RecruiterAnalyticsWidget from "../components/RecruiterAnalyticsWidget";
 import MatchList from "../components/MatchList";
