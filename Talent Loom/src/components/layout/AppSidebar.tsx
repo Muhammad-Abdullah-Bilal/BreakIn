@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { 
   LayoutDashboard, 
   Search, 
@@ -25,14 +24,14 @@ import {
 } from "@/components/ui/sidebar";
 
 const navigationItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Search Candidates", url: "/candidates", icon: Search },
+  { title: "Overview", url: "/", icon: LayoutDashboard },
+  { title: "Candidate Search", url: "/candidates", icon: Search },
   { title: "Job Postings", url: "/jobs", icon: BriefcaseIcon },
   { title: "Pipeline", url: "/pipeline", icon: Users },
   { title: "Matches", url: "/matches", icon: Target },
   { title: "Offers", url: "/offers", icon: FileText },
   { title: "Billing", url: "/billing", icon: CreditCard },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Reports & Analytics", url: "/reports", icon: BarChart3 },
 ];
 
 const settingsItems = [
@@ -53,25 +52,22 @@ export function AppSidebar() {
   const getNavCls = (path: string) => {
     const active = isActive(path);
     return active 
-      ? "bg-gradient-primary text-primary-foreground font-medium shadow-elegant" 
+      ? "bg-primary text-primary-foreground font-medium" 
       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
   };
 
   return (
     <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
-      <SidebarContent>
+      <SidebarContent className="bg-sidebar-background border-r border-sidebar-border">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70 font-semibold">
-            Navigation
-          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild className="h-10">
                     <NavLink to={item.url} className={getNavCls(item.url)}>
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && <span className="ml-3">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -85,10 +81,10 @@ export function AppSidebar() {
             <SidebarMenu>
               {settingsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild className="h-10">
                     <NavLink to={item.url} className={getNavCls(item.url)}>
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && <span className="ml-3">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

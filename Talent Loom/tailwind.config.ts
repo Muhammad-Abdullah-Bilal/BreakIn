@@ -66,6 +66,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        status: {
+          active: "hsl(var(--status-active))",
+          idle: "hsl(var(--status-idle))",
+          inactive: "hsl(var(--status-inactive))",
+        },
       },
       backgroundImage: {
         'gradient-primary': 'var(--gradient-primary)',

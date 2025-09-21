@@ -6,26 +6,39 @@ import { coralMCP, coralStudio, aimlClient, crossmintClient, elevenLabsClient } 
 // Enhanced Candidates API with Coral MCP integration
 export const candidatesApi = {
   getAll: async (filters?: Partial<CandidateFilters>): Promise<Candidate[]> => {
-    await mockApiDelay(800);
-    let candidates = [...mockCandidates];
-    
-    if (filters?.skills?.length) {
-      candidates = candidates.filter(c => 
-        filters.skills!.some(skill => 
-          c.skills.some(cSkill => cSkill.toLowerCase().includes(skill.toLowerCase()))
-        )
-      );
+    try {
+      const params = new URLSearchParams();
+      if (filters?.skills?.length) params.append('skills', filters.skills.join(','));
+      if (filters?.availability?.length) params.append('availability', filters.availability.join(','));
+      if (filters?.track) params.append('track', filters.track);
+      
+      const response = await fetch(`http://localhost:8000/api/talent-loom/candidates?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch candidates');
+      const data = await response.json();
+      return data.candidates || [];
+    } catch (error) {
+      console.error('Candidates API error:', error);
+      await mockApiDelay(800);
+      let candidates = [...mockCandidates];
+      
+      if (filters?.skills?.length) {
+        candidates = candidates.filter(c => 
+          filters.skills!.some(skill => 
+            c.skills.some(cSkill => cSkill.toLowerCase().includes(skill.toLowerCase()))
+          )
+        );
+      }
+      
+      if (filters?.availability?.length) {
+        candidates = candidates.filter(c => filters.availability!.includes(c.availability));
+      }
+      
+      if (filters?.track) {
+        candidates = candidates.filter(c => c.track === filters.track);
+      }
+      
+      return candidates;
     }
-    
-    if (filters?.availability?.length) {
-      candidates = candidates.filter(c => filters.availability!.includes(c.availability));
-    }
-    
-    if (filters?.track) {
-      candidates = candidates.filter(c => c.track === filters.track);
-    }
-    
-    return candidates;
   },
   
   getById: async (id: string): Promise<Candidate | null> => {
@@ -77,8 +90,16 @@ export const candidatesApi = {
 // Jobs API
 export const jobsApi = {
   getAll: async (): Promise<JobPosting[]> => {
-    await mockApiDelay(700);
-    return [...mockJobPostings];
+    try {
+      const response = await fetch('http://localhost:8000/api/talent-loom/jobs');
+      if (!response.ok) throw new Error('Failed to fetch jobs');
+      const data = await response.json();
+      return data.jobs || [];
+    } catch (error) {
+      console.error('Jobs API error:', error);
+      await mockApiDelay(700);
+      return [...mockJobPostings];
+    }
   },
   
   getById: async (id: string): Promise<JobPosting | null> => {
@@ -108,8 +129,16 @@ export const jobsApi = {
 // Enhanced Pipeline API with AI suggestions
 export const pipelineApi = {
   getAll: async (): Promise<PipelineItem[]> => {
-    await mockApiDelay(600);
-    return [...mockPipelineItems];
+    try {
+      const response = await fetch('http://localhost:8000/api/talent-loom/pipeline');
+      if (!response.ok) throw new Error('Failed to fetch pipeline');
+      const data = await response.json();
+      return data.pipeline || [];
+    } catch (error) {
+      console.error('Pipeline API error:', error);
+      await mockApiDelay(600);
+      return [...mockPipelineItems];
+    }
   },
   
   moveCandidate: async (itemId: string, newStage: PipelineStage): Promise<PipelineItem> => {
@@ -274,16 +303,25 @@ export const matchesApi = {
 // Enhanced Dashboard API with AI narratives
 export const dashboardApi = {
   getKPIs: async (): Promise<KPIData> => {
-    await mockApiDelay(500);
-    return { ...mockKPIData };
+    try {
+      const response = await fetch('http://localhost:8000/api/talent-loom/dashboard');
+      if (!response.ok) throw new Error('Failed to fetch dashboard data');
+      return await response.json();
+    } catch (error) {
+      console.error('Dashboard API error:', error);
+      await mockApiDelay(500);
+      return { ...mockKPIData };
+    }
   },
   
   // New: Get AI-generated KPI narratives
   getKPINarrative: async (): Promise<string> => {
     try {
-      const kpis = await dashboardApi.getKPIs();
-      return await coralMCP.report.narrate_kpis(kpis);
+      const response = await fetch('http://localhost:8000/api/talent-loom/dashboard/narrative');
+      if (!response.ok) throw new Error('Failed to fetch narrative');
+      return await response.text();
     } catch (error) {
+      console.error('Narrative API error:', error);
       return "Your hiring performance shows positive trends across key metrics.";
     }
   }
