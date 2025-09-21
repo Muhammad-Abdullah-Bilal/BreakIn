@@ -134,8 +134,12 @@ def create_app() -> FastAPI:
     else:
         origins = [
             "https://breakin-demo.vercel.app",
-            "http://localhost:3000",
-            "http://localhost:3001",
+            "https://*.vercel.app",  # All Vercel deployments
+            "https://breakin.vercel.app",  # Production domain placeholder
+            "https://breakin-frontend.vercel.app",  # Alternative naming
+            "http://localhost:3000",  # Local development
+            "http://localhost:3001",  # Alternative local port
+            "http://127.0.0.1:3000",  # IPv4 localhost
         ]
     
     app.add_middleware(

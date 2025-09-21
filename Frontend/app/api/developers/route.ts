@@ -1,38 +1,57 @@
 // ===== FILE: app/api/developers/route.ts =====
-import { getDatabase } from '@/lib/mongodb'
-import { Developer } from '@/lib/models/types'
+import { NextRequest, NextResponse } from 'next/server'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function GET() {
   try {
-    console.log('🔍 Fetching all developers...')
-    const db = await getDatabase()
-    const developers = await db.collection<Developer>('developers').find({}).toArray()
+    console.log('🔍 Proxying developers request...')
     
-    console.log('✅ Found developers:', developers.length)
-    return Response.json(developers)
+    const response = await fetch(`${API_BASE_URL}/api/developers`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Backend API error: ${response.status} ${response.statusText}`)
+    }
+
+    const developers = await response.json()
+    
+    console.log('✅ Successfully fetched developers from backend:', developers.length || 0)
+    return NextResponse.json(developers)
   } catch (error) {
-    console.error('❌ Error fetching developers:', error)
-    return Response.json({ error: 'Failed to fetch developers' }, { status: 500 })
+    console.error('❌ Failed to fetch developers:', error)
+    return NextResponse.json({ error: 'Failed to fetch developers' }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Proxying developer creation request...')
     const body = await request.json()
-    const db = await getDatabase()
     
-    const newDeveloper: Omit<Developer, '_id'> = {
-      ...body,
-      created_at: new Date(),
-      updated_at: new Date()
+    const response = await fetch(`${API_BASE_URL}/api/developers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Backend API error: ${response.status} ${response.statusText}`)
     }
+
+    const result = await response.json()
     
-    const result = await db.collection<Developer>('developers').insertOne(newDeveloper)
-    
-    return Response.json({ id: result.insertedId }, { status: 201 })
+    console.log('✅ Successfully created developer in backend')
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
-    console.error('❌ Error creating developer:', error)
-    return Response.json({ error: 'Failed to create developer' }, { status: 500 })
+    console.error('❌ Failed to create developer:', error)
+    return NextResponse.json({ error: 'Failed to create developer' }, { status: 500 })
   }
 }
 

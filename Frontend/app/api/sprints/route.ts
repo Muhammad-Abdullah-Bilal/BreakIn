@@ -1,13 +1,13 @@
 // app/api/sprints/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { getDatabase } from '@/lib/mongodb'
-import { Sprint } from '@/lib/models/types'
+import { NextRequest } from 'next/server'
+import { createProxyHandler } from '@/lib/api-proxy'
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const difficulty = searchParams.get('difficulty')
+const handlers = createProxyHandler('/api/sprints')
+
+export const GET = handlers.GET
+export const POST = handlers.POST
+export const PUT = handlers.PUT
+export const DELETE = handlers.DELETE
     const technology = searchParams.get('technology')
     
     const db = await getDatabase()

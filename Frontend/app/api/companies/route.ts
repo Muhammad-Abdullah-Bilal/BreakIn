@@ -1,12 +1,13 @@
 // app/api/companies/route.ts
-import { Company } from '@/lib/models/types'
-import { NextRequest, NextResponse } from 'next/server'
-import { getDatabase } from '@/lib/mongodb'
-import { Squad } from '@/lib/models/types'
-export async function GET(request: NextRequest) {
-  try {
-    const db = await getDatabase()
-    const companies = await db.collection<Company>('companies').find({}).toArray()
+import { NextRequest } from 'next/server'
+import { createProxyHandler } from '@/lib/api-proxy'
+
+const handlers = createProxyHandler('/api/companies')
+
+export const GET = handlers.GET
+export const POST = handlers.POST
+export const PUT = handlers.PUT
+export const DELETE = handlers.DELETE
     
     return NextResponse.json(companies)
   } catch (error) {

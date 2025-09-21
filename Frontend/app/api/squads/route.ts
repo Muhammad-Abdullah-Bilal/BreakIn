@@ -1,13 +1,13 @@
 // app/api/squads/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { getDatabase } from '@/lib/mongodb'
-import { Squad } from '@/lib/models/types'
+import { NextRequest } from 'next/server'
+import { createProxyHandler } from '@/lib/api-proxy'
 
-export async function GET(request: NextRequest) {
-  try {
-    const db = await getDatabase()
-    const squads = await db.collection<Squad>('squads')
-      .find({})
+const handlers = createProxyHandler('/api/squads')
+
+export const GET = handlers.GET
+export const POST = handlers.POST
+export const PUT = handlers.PUT
+export const DELETE = handlers.DELETE
       .sort({ success_rate: -1 })
       .toArray()
     

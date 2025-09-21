@@ -59,7 +59,6 @@
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "monaco-editor": "^0.52.2",
-    "mongodb": "^6.20.0",
     "motion": "^12.23.12",
     "next": "^15.2.4",
     "next-themes": "latest",

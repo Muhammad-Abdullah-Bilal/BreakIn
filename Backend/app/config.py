@@ -36,7 +36,13 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = Field(default="redis://localhost:6379/0")
 
     # CORS
-    ALLOWED_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    ALLOWED_ORIGINS: List[str] = Field(default_factory=lambda: [
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "https://*.vercel.app",
+        "https://breakin.vercel.app",
+        "https://breakin-frontend.vercel.app"
+    ])
 
     # Logging
     LOG_LEVEL: str = Field(default="INFO")
