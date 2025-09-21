@@ -13,242 +13,220 @@ import {
   Target,
   Search,
   Plus,
-  AlertCircle
+  AlertCircle,
+  Radar,
+  Activity,
+  Eye,
+  Settings as SettingsIcon
 } from "lucide-react";
-import { useDashboard, usePipeline, useJobs, useDashboardNarrative } from "@/hooks/useApi";
+import { useDashboard, usePipeline, useJobs, useDashboardNarrative, useAgentStatus, useAgentActivity } from "@/hooks/useApi";
 import { usePipelineSubscription, useJobsSubscription } from "@/hooks/useRealtime";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Dashboard() {
+  // Use real API hooks
   const { data: kpiData, isLoading: kpiLoading, error: kpiError } = useDashboard();
-  const { data: narrativeData, isLoading: narrativeLoading } = useDashboardNarrative();
-  const { data: pipelineData, isLoading: pipelineLoading } = usePipeline();
-  const { data: jobsData, isLoading: jobsLoading } = useJobs();
-
+  const { data: agentStatus, isLoading: agentStatusLoading } = useAgentStatus();
+  const { data: recentActivity, isLoading: activityLoading } = useAgentActivity();
+  
   // Subscribe to realtime updates
   usePipelineSubscription();
   useJobsSubscription();
 
-  const recentMatches = pipelineData?.slice(0, 3) || [];
-  const activeJobs = jobsData?.filter(job => job.status === 'active').slice(0, 3) || [];
+  // Fallback data for when API is not available
+  const mockKpiData = {
+    activeJobs: 8,
+    pipeline: 23,
+    radarDetections: 47,
+    successRate: 94
+  };
 
-  if (kpiError) {
-    return (
-      <div className="space-y-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load dashboard data. Please try refreshing the page.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  const kpiCards = kpiData ? [
-    {
-      title: "Total Candidates",
-      value: kpiData.totalCandidates.toLocaleString(),
-      description: "Active in talent pool",
-      icon: Users,
-      color: "text-primary"
-    },
-    {
-      title: "Active Jobs",
-      value: kpiData.activeJobs.toString(),
-      description: "Currently hiring",
-      icon: BriefcaseIcon,
-      color: "text-success"
-    },
-    {
-      title: "Pending Offers",
-      value: kpiData.pendingOffers.toString(),
-      description: "Awaiting response",
-      icon: FileText,
-      color: "text-warning"
-    },
-    {
-      title: "Hired This Month",
-      value: kpiData.hiredThisMonth.toString(),
-      description: "Successful placements",
-      icon: TrendingUp,
-      color: "text-success"
-    }
-  ] : [];
+  const displayKpiData = kpiData || mockKpiData;
+  const displayAgentStatus = agentStatus || [
+    { name: "Job Radar Agent", description: "Scanning job boards", status: "Active" },
+    { name: "Talent Matching", description: "Processing matches", status: "Active" },
+    { name: "Outreach Agent", description: "Standby mode", status: "Idle" }
+  ];
+  const displayActivity = recentActivity || [
+    { title: "New job detected: Senior React Developer at TechCorp", time: "2 hours ago", type: "detection" },
+    { title: "Outreach sent for Full Stack Engineer role", time: "4 hours ago", type: "outreach" },
+    { title: "High match found for DevOps Engineer", time: "6 hours ago", type: "match" }
+  ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Recruiting Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">TalentLoom Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome to TalentLoom. Monitor your hiring performance and key metrics.
+            AI-powered talent acquisition and pipeline management
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button asChild>
-            <Link to="/candidates">
-              <Search className="w-4 h-4 mr-2" />
-              Find Candidates
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/jobs">
-              <Plus className="w-4 h-4 mr-2" />
-              Post Job
-            </Link>
-          </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+            <div className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse" />
+            Radar Active
+          </Badge>
+          <div className="w-8 h-4 bg-primary rounded-full relative">
+            <div className="w-4 h-4 bg-white rounded-full absolute right-0 top-0 shadow-sm"></div>
+          </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - matching the design */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {kpiLoading ? (
-          Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          kpiCards.map((kpi, index) => {
-            const Icon = kpi.icon;
-            return (
-              <Card key={index} className="relative overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-                  <Icon className={`h-4 w-4 ${kpi.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{kpi.value}</div>
-                  <p className="text-xs text-muted-foreground">{kpi.description}</p>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Jobs</CardTitle>
+            <BriefcaseIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{displayKpiData.activeJobs}</div>
+            <p className="text-xs text-primary">+2 this week</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pipeline</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{displayKpiData.pipeline || displayKpiData.totalCandidates}</div>
+            <p className="text-xs text-primary">Candidates active</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Radar Detections</CardTitle>
+            <Radar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{displayKpiData.radarDetections || displayKpiData.hiredThisMonth}</div>
+            <p className="text-xs text-primary">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Success Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{displayKpiData.successRate || displayKpiData.conversionRate}%</div>
+            <p className="text-xs text-primary">Above average</p>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* AI Agent Status - matching the design */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Activity className="w-5 h-5 text-primary" />
+            AI Agent Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            {agentStatusLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="bg-secondary/50 rounded-lg p-4 border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-5 w-16" />
+                  </div>
+                  <Skeleton className="h-3 w-40" />
+                </div>
+              ))
+            ) : (
+              displayAgentStatus.map((agent, index) => (
+                <div key={index} className="bg-secondary/50 rounded-lg p-4 border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-foreground">{agent.name}</h4>
+                    <Badge 
+                      variant={agent.status === "Active" ? "default" : "secondary"}
+                      className={agent.status === "Active" ? "bg-primary text-primary-foreground" : "bg-warning text-warning-foreground"}
+                    >
+                      {agent.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{agent.description}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* AI-Powered Insights */}
-        <Card className="lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Radar Activity */}
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              AI-Powered Insights
-            </CardTitle>
-            <CardDescription>
-              Intelligent analysis of your hiring performance
-            </CardDescription>
+            <CardTitle className="text-foreground">Recent Radar Activity</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* AI Narrative */}
-            {narrativeLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
-            ) : narrativeData ? (
-              <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
-                <p className="text-sm leading-relaxed text-foreground">
-                  {narrativeData}
-                </p>
-              </div>
-            ) : null}
-
-            {kpiLoading ? (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-2 w-full" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-2 w-full" />
-                </div>
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-40" />
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton key={i} className="h-6 w-20" />
-                    ))}
+          <CardContent className="space-y-4">
+            {activityLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                  <Skeleton className="w-2 h-2 rounded-full mt-2" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-3 w-20" />
                   </div>
+                  <Skeleton className="h-8 w-16" />
                 </div>
-              </div>
-            ) : kpiData ? (
-              <>
-                {/* Average Time to Hire */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Average Time to Hire</span>
-                    <span className="text-sm text-muted-foreground">{kpiData.averageTimeToHire} days</span>
+              ))
+            ) : (
+              displayActivity.map((activity, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    activity.type === 'detection' ? 'bg-primary' : 
+                    activity.type === 'outreach' ? 'bg-blue-500' : 'bg-warning'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">{activity.title}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
-                  <Progress value={Math.min((30 - kpiData.averageTimeToHire) / 30 * 100, 100)} className="h-2" />
+                  <Button variant="outline" size="sm">
+                    <Eye className="w-3 h-3 mr-1" />
+                    View
+                  </Button>
                 </div>
-
-                {/* Conversion Rate */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Conversion Rate</span>
-                    <span className="text-sm text-muted-foreground">{kpiData.conversionRate}%</span>
-                  </div>
-                  <Progress value={kpiData.conversionRate} className="h-2" />
-                </div>
-
-                {/* Top Skills */}
-                <div>
-                  <h4 className="text-sm font-medium mb-3">Most In-Demand Skills</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {kpiData.topSkills.slice(0, 5).map((skill, index) => (
-                      <Badge key={index} variant="secondary">
-                        {skill.skill} ({skill.count})
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : null}
+              ))
+            )}
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
-        <Card>
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
-              Common recruiting tasks
-            </CardDescription>
+            <CardTitle className="text-foreground">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button asChild className="w-full justify-start">
-              <Link to="/candidates">
-                <Search className="w-4 h-4 mr-2" />
-                Search Candidates
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
+            <Button className="w-full justify-start bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
               <Link to="/jobs">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Job Posting
               </Link>
             </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
-              <Link to="/pipeline">
-                <Users className="w-4 h-4 mr-2" />
-                Manage Pipeline
+            <Button variant="outline" className="w-full justify-start border-border text-foreground hover:bg-secondary" asChild>
+              <Link to="/candidates">
+                <Search className="w-4 h-4 mr-2" />
+                Search Candidates
               </Link>
             </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start border-border text-foreground hover:bg-secondary" asChild>
+              <Link to="/settings">
+                <SettingsIcon className="w-4 h-4 mr-2" />
+                Configure Settings
+              </Link>
+            </Button>
+            <Button variant="outline" className="w-full justify-start border-border text-foreground hover:bg-secondary" asChild>
               <Link to="/reports">
                 <FileText className="w-4 h-4 mr-2" />
                 View Reports
@@ -258,126 +236,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Matches */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Recent Matches
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/matches">View All</Link>
-              </Button>
-            </CardTitle>
-            <CardDescription>
-              Latest candidate-job matches
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {pipelineLoading ? (
-              Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="flex items-center space-x-4">
-                  <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Skeleton className="h-5 w-16" />
-                    <Skeleton className="h-5 w-20" />
-                  </div>
-                </div>
-              ))
-            ) : (
-              recentMatches.map((match) => (
-                <div key={match.id} className="flex items-center space-x-4">
-                  <Avatar>
-                    <AvatarImage src={match.candidate.avatar} />
-                    <AvatarFallback>
-                      {match.candidate.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">{match.candidate.name}</p>
-                    <p className="text-xs text-muted-foreground">{match.jobTitle}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {match.matchScore && (
-                      <Badge variant="secondary" className="text-xs">
-                        {match.matchScore}% match
-                      </Badge>
-                    )}
-                    <Badge variant={
-                      match.stage === 'offer' ? 'default' : 
-                      match.stage === 'interview' ? 'secondary' : 'outline'
-                    }>
-                      {match.stage}
-                    </Badge>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Active Jobs */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Active Jobs
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/jobs">View All</Link>
-              </Button>
-            </CardTitle>
-            <CardDescription>
-              Currently open positions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {jobsLoading ? (
-              Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-5 w-16" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-3 w-24" />
-                    <div className="flex items-center space-x-4">
-                      <Skeleton className="h-3 w-8" />
-                      <Skeleton className="h-3 w-8" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-1 w-full" />
-                </div>
-              ))
-            ) : (
-              activeJobs.map((job) => (
-                <div key={job.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">{job.title}</h4>
-                    <Badge variant="outline">{job.experienceLevel}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{job.companyName}</span>
-                    <div className="flex items-center space-x-4">
-                      <span className="flex items-center">
-                        <Users className="w-3 h-3 mr-1" />
-                        {job.applicationsCount}
-                      </span>
-                      <span className="flex items-center">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {Math.floor((Date.now() - new Date(job.createdAt).getTime()) / (1000 * 60 * 60 * 24))}d
-                      </span>
-                    </div>
-                  </div>
-                  <Progress value={(job.applicationsCount / 50) * 100} className="h-1" />
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

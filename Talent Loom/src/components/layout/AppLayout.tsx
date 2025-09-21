@@ -1,8 +1,9 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, User } from "lucide-react";
+import { Bell, Radar, ToggleLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,15 +24,29 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="h-16 border-b bg-card/50 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-50">
+          {/* Header - matching BreakIn Radar design */}
+          <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 sticky top-0 z-50">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <div className="font-semibold text-foreground">TalentLoom</div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Radar className="h-6 w-6 text-primary" />
+                  <span className="font-bold text-lg text-foreground">TalentLoom</span>
+                </div>
+              </div>
             </div>
             
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
+              {/* Radar Active Status */}
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                  <div className="w-2 h-2 bg-primary rounded-full mr-2 animate-pulse" />
+                  Radar Active
+                </Badge>
+                <ToggleLeft className="h-5 w-5 text-primary" />
+              </div>
+              
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                 <Bell className="h-4 w-4" />
               </Button>
               
@@ -40,7 +55,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="/avatars/01.png" alt="@user" />
-                      <AvatarFallback>RC</AvatarFallback>
+                      <AvatarFallback className="bg-primary/20 text-primary">RC</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -65,7 +80,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-6 bg-background">
             {children}
           </main>
         </div>
