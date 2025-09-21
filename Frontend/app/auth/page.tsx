@@ -1,3 +1,3 @@
-// /auth -> AuthLandingPage
-import AuthLandingPage from "../../src/modules/auth/pages/AuthLandingPage";
-export default AuthLandingPage;
+// /auth -> LoginPage
+import LoginPage from "../../src/modules/auth/pages/LoginPage";
+export default LoginPage;

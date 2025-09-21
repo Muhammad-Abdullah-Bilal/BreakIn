@@ -1,3 +1,7 @@
+"use client";
+
+"use client";
+
 // TalentSearchPage: search/browse candidates
 
 import { useState } from "react";
