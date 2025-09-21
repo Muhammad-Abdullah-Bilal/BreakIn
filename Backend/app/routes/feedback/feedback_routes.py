@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.dependencies import get_db, get_current_user
-from app.models.auth import User
+from app.models.users.user_model import UserModel
 from app.schemas.feedback.schemas import (
     FeedbackThreadCreate,
     FeedbackMessageCreate,
@@ -22,7 +22,7 @@ router = APIRouter()
 @router.post("/threads", response_model=FeedbackThreadOut)
 async def create_thread(
     thread: FeedbackThreadCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> FeedbackThreadOut:
     """Create a new feedback thread.
@@ -62,7 +62,7 @@ async def create_thread(
 @router.post("/threads/{thread_id}/messages", response_model=FeedbackThreadOut)
 async def add_message(
     message: FeedbackMessageCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> FeedbackThreadOut:
     """Add a message to a thread.
@@ -110,7 +110,7 @@ async def add_message(
 @router.post("/threads/{thread_id}/close", response_model=FeedbackThreadOut)
 async def close_thread(
     thread_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> FeedbackThreadOut:
     """Close a feedback thread.
@@ -145,7 +145,7 @@ async def list_threads(
     status: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> List[FeedbackThreadOut]:
     """List feedback threads with optional filters.
@@ -189,7 +189,7 @@ async def list_threads(
 @router.post("/appeals", response_model=AppealOut)
 async def create_appeal(
     appeal: AppealCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> AppealOut:
     """Create a new appeal.
@@ -234,7 +234,7 @@ async def create_appeal(
 async def process_appeal(
     appeal_id: str,
     update: AppealUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> AppealOut:
     """Process an appeal decision.
@@ -271,7 +271,7 @@ async def list_appeals(
     status: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> List[AppealOut]:
     """List appeals with optional filters.

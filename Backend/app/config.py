@@ -1,4 +1,3 @@
-def close_mongodb_connection():
 """Application configuration and helpers.
 
 This module exposes a Settings object (pydantic BaseSettings) and connection helpers
@@ -9,19 +8,17 @@ active database instance.
 from __future__ import annotations
 
 import logging
+import os
 from typing import List, Optional
 
-from pydantic import BaseSettings, Field, AnyHttpUrl
+from pydantic import Field, AnyHttpUrl
+from pydantic_settings import BaseSettings
 from pymongo import MongoClient
 from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-
-# Configuration MongoDB
-MONGO_URI = os.getenv("MONGO_URI", "MONGO_URI")
-DB_NAME = os.getenv("DB_NAME", "breakin")
 
 class Settings(BaseSettings):
     # Database
@@ -42,6 +39,16 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_LEVEL: str = Field(default="INFO")
+
+    # OpenAI Configuration
+    OPENAI_API_KEY: str = Field("", env="OPENAI_API_KEY")
+    OPENAI_MODEL: str = Field("gpt-4o", env="OPENAI_MODEL")
+    OPENAI_MAX_TOKENS: int = Field(4000, env="OPENAI_MAX_TOKENS")
+
+    # Job Scraping Configuration
+    JOB_SCRAPING_ENABLED: bool = Field(True, env="JOB_SCRAPING_ENABLED")
+    SCRAPING_INTERVAL_HOURS: int = Field(6, env="SCRAPING_INTERVAL_HOURS")
+    MAX_JOBS_PER_PLATFORM: int = Field(50, env="MAX_JOBS_PER_PLATFORM")
 
     class Config:
         env_file = ".env"
@@ -78,11 +85,6 @@ def connect_to_mongodb() -> bool:
 
 
 def get_database() -> Database:
-    MONGO_URI = os.getenv("MONGO_URI", "MONGO_URI")
-    DB_NAME = os.getenv("DB_NAME", "breakin")
-    client = MongoClient(MONGO_URI)
-    return client[DB_NAME]
-        
     """Return the active Database instance (connects lazily if needed)."""
     global client, db
     if db is None:
@@ -93,12 +95,16 @@ def get_database() -> Database:
 
 
 def close_mongodb_connection() -> None:
-    global client
+    """Close the MongoDB connection if it exists."""
+    global client, db
     if client is not None:
         try:
             client.close()
             logger.info("Closed MongoDB connection")
         except Exception:
             logger.exception("Error while closing MongoDB connection")
+        finally:
+            client = None
+            db = None
 
 

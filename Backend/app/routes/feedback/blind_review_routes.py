@@ -5,7 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import Dict, List, Optional
 
 from app.dependencies import get_db, get_current_user
-from app.models.auth import User
+from app.models.users.user_model import UserModel
 from app.schemas.feedback.schemas import (
     ReviewCreate,
     ReviewOut,
@@ -21,7 +21,7 @@ router = APIRouter()
 @router.post("/blind-reviews", response_model=ReviewOut)
 async def create_blind_review(
     review: ReviewCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> ReviewOut:
     """Create a new blind review.
@@ -92,7 +92,7 @@ async def create_blind_review(
 @router.post("/blind-threads", response_model=FeedbackThreadOut)
 async def create_blind_thread(
     thread: FeedbackThreadCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> FeedbackThreadOut:
     """Create a new blind feedback thread.
@@ -149,7 +149,7 @@ async def create_blind_thread(
 @router.post("/reveal-identities/{submission_id}")
 async def reveal_review_identities(
     submission_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> Dict[str, List[Dict]]:
     """Reveal reviewer identities for a submission.
@@ -229,7 +229,7 @@ async def reveal_review_identities(
 @router.post("/opt-in-reveal/{submission_id}")
 async def opt_in_identity_reveal(
     submission_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Opt in to revealing identity for a review.

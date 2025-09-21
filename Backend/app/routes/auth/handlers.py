@@ -16,7 +16,7 @@ from app.utils.auth.security_utils import (
     generate_password_reset_token, verify_password_reset_token
 )
 from app.utils.auth.middleware import jwt_bearer
-from app.models import User
+from app.models.users.user_model import UserModel
 from app.services.db import get_db
 
 router = APIRouter()
