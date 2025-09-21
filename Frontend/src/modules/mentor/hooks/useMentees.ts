@@ -1,3 +1,5 @@
+"use client";
+
 // useMentees hook
 
 import { useCallback, useEffect, useState } from "react";

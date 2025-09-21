@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/lib/contexts/AuthContext";
+import { useAuth } from "@/providers/AuthProvider";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
 import { GlobeDemo } from "../../globe/globe";
@@ -24,7 +24,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState<LoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const { signUp } = useAuth();
+  const { signUp, signIn } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ export default function SignUpPage() {
     }
 
     try {
-      await signUp(name, email, password)
+      await signUp(email, password, { displayName: name })
       setError(null)
       alert('Account created. You can now sign in.')
     } catch (err: any) {
@@ -54,8 +54,20 @@ export default function SignUpPage() {
     }
   };
 
-  const handleOAuthSignIn = async (_provider: any) => {
-    setError('OAuth sign-in is not available')
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    setLoading('oauth');
+    setError(null);
+    
+    try {
+      // Mock OAuth sign-in for development
+      const mockEmail = provider === 'google' ? 'user@gmail.com' : 'user@github.com';
+      await signIn(mockEmail, 'oauth-password');
+      setError(null);
+    } catch (err: any) {
+      setError(`${provider} sign-in failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setLoading('idle');
+    }
   }
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -63,8 +75,21 @@ export default function SignUpPage() {
     setLoading('loading');
     setError(null);
 
-    setError('Please use the Login page to sign in')
-    setLoading('idle')
+    if (!email || !password) {
+      setError("Email and password are required");
+      setLoading('idle');
+      return;
+    }
+
+    try {
+      await signIn(email, password);
+      setError(null);
+      // Redirect will be handled by auth provider
+    } catch (err: any) {
+      setError(err?.message || 'Login failed');
+    } finally {
+      setLoading('idle');
+    }
   };
 
   return (

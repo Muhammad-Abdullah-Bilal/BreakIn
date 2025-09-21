@@ -1,3 +1,5 @@
+"use client";
+
 // ReviewQueuePage: list of submissions awaiting review
 
 import { ReviewCard } from "../components/ReviewCard";

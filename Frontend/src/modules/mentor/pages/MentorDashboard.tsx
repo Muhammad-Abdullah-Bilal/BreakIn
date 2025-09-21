@@ -1,3 +1,5 @@
+"use client";
+
 // MentorDashboard: overview page
 
 import { ReviewCard } from "../components/ReviewCard";
@@ -18,16 +20,41 @@ const MOCK_SUBMISSIONS = {
 };
 
 export default function MentorDashboard() {
-  const { reviews } = useReviewQueue();
+  const { reviews, loading, error } = useReviewQueue();
+  
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto py-8">
+        <h1 className="text-2xl font-bold mb-6">Pending Reviews</h1>
+        <p>Loading reviews...</p>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto py-8">
+        <h1 className="text-2xl font-bold mb-6">Pending Reviews</h1>
+        <p className="text-red-600">Error loading reviews: {error.message}</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="max-w-2xl mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">Pending Reviews</h1>
-      {reviews.map((review) => (
-        <ReviewCard
-          key={review.id}
-          submission={MOCK_SUBMISSIONS[review.submissionId]}
-        />
-      ))}
+      {reviews && reviews.length > 0 ? (
+        reviews.map((review) => (
+          <ReviewCard
+            key={review.id}
+            review={review}
+            onSelect={(selectedReview) => console.log('Selected review:', selectedReview)}
+            submission={MOCK_SUBMISSIONS[review.submissionId]}
+          />
+        ))
+      ) : (
+        <p className="text-gray-500">No pending reviews found.</p>
+      )}
     </div>
   );
 }

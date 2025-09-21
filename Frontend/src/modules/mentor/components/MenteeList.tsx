@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { Mentee } from '../types/mentee';
 import { MenteeCard } from './MenteeCard';

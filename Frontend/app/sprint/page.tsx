@@ -1,11 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircleIcon, ClockIcon, RocketLaunchIcon, UserGroupIcon } from "@heroicons/react/24/solid";
 import { XMarkIcon, PlayCircleIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
+import { useAuth } from "@/providers/AuthProvider";
 
 
 
@@ -132,6 +133,8 @@ const initialTasks: Task[] = [
 // ----- Page Sprint -----
 export default function SprintPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+  
   const [progress, setProgress] = useState(78);
   const [members] = useState<Member[]>(initialMembers);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -140,6 +143,15 @@ export default function SprintPage() {
     "Implement a secure payment integration with refund flows & retries."
   );
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // Check authentication
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      // Store the current URL to return after login
+      sessionStorage.setItem('returnUrl', '/sprint');
+      router.push('/auth/sign-up');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const columns = useMemo(
     () => ({
@@ -172,6 +184,20 @@ export default function SprintPage() {
     
     // Redirect to coding page
     router.push(`/sprint/sprinting?sprintId=sprint-123&taskId=${selectedTask?.id || initialTasks[0].id}`);
+  }
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#0b1220] to-[#0e1628] flex items-center justify-center">
+        <div className="text-slate-200">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (redirect will happen in useEffect)
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

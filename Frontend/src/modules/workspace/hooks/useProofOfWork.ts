@@ -1,3 +1,5 @@
+"use client";
+
 // useProofOfWork hook
 
 import { useState } from "react";

@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useActivities, useAvailableSprints, useSkillProgress } from "@/hooks/use-data"
-import { useAuth } from "@/lib/contexts/AuthContext"
+import { useAuth } from "@/providers/AuthProvider"
 import {
     Award,
     Bell,

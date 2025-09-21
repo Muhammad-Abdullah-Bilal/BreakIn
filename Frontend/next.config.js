@@ -48,11 +48,7 @@ const nextConfig = {
   // Configuration des redirections
   async redirects() {
     return [
-      {
-        source: '/',
-        destination: '/developer-dashboard',
-        permanent: false,
-      },
+      // Removed automatic redirect to developer-dashboard to allow landing page access
     ]
   },
 

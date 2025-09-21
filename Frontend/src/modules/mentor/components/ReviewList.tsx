@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { Review } from '../types/review';
 import { ReviewCard } from './ReviewCard';

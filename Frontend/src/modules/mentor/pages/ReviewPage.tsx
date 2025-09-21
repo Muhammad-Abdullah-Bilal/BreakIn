@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { FeedbackForm } from '../components/FeedbackForm';
 import { ReviewList } from '../components/ReviewList';

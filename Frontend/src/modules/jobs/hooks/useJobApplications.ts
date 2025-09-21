@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useState } from "react";
 import { ApplicationStatus, JobApplication } from "../types/job";
 

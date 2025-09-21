@@ -12,12 +12,21 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ review, onSelect, submission }: ReviewCardProps) {
+  // Safety check for undefined review
+  if (!review) {
+    return (
+      <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-xl shadow mb-4">
+        <p className="text-gray-500">Review data not available</p>
+      </div>
+    );
+  }
+  
   const formattedDate = new Date(review.createdAt).toLocaleString();
   
   return (
     <div 
       className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition mb-4 cursor-pointer"
-      onClick={() => onSelect(review)}
+      onClick={() => onSelect && onSelect(review)}
     >
       <div className="flex justify-between items-start">
         <h3 className="font-semibold">
