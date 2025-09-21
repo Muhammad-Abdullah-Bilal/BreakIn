@@ -32,6 +32,15 @@ class UserModel(BaseModel):
     roles: List[str] = ["user"]
     access_level: int = 1  # 1=basic, 2=verified, 3=trusted, 4=admin
     
+    # Company association (for employer users)
+    company_id: Optional[str] = None
+    
+    # Primary role (for backward compatibility)
+    @property
+    def role(self) -> str:
+        """Get primary role from roles list."""
+        return self.roles[0] if self.roles else "user"
+    
     class Config:
         """Pydantic model configuration."""
         allow_population_by_field_name = True

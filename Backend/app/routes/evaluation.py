@@ -95,63 +95,67 @@ def _generate_mock_metrics(sprint_id: str) -> TeamEvaluationRequest:
 @router.post("/evaluate", response_model=SprintEvaluationResult)
 async def evaluate_sprint(eval_data: EvaluationRequest):
     """Évalue un sprint terminé et retourne les résultats"""
-    # Vérifier si le sprint existe et appartient à l'utilisateur
-    sprint = db.sprints.find_one({
-        "_id": eval_data.sprint_id,
-        "user_id": eval_data.user_id,
-        "status": "completed"
-    })
-    
-    if not sprint:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sprint not found or not completed"
-        )
-    
-    # Vérifier si une évaluation existe déjà
-    existing_eval = db.sprint_evaluations.find_one({"sprint_id": eval_data.sprint_id})
-    if existing_eval:
-        return existing_eval
-    
-    # Générer ou récupérer les métriques du sprint
-    metrics = _generate_mock_metrics(eval_data.sprint_id)
-    
-    # Obtenir l'évaluation de l'IA
-    evaluation = await ai_evaluator.evaluate_team_performance(metrics)
-    
-    # Enregistrer les résultats
-    result = {
-        "sprint_id": eval_data.sprint_id,
-        "team_score": evaluation.team_score,
-        "team_breakdown": evaluation.team_breakdown,
-        "individual_scores": [
-            {
-                "name": score.name,
-                "pseudonym": score.pseudonym,
-                "score": score.score,
-                "breakdown": score.breakdown,
-                "strengths": score.strengths,
-                "growth_suggestions": score.growth_suggestions
-            } for score in evaluation.individual_scores
-        ],
-        "recommendations": evaluation.recommendations,
-        "evaluated_at": datetime.utcnow(),
-        "user_feedback": {
-            "rating": eval_data.rating,
-            "comments": eval_data.feedback
+    try:
+        # Vérifier si le sprint existe et appartient à l'utilisateur
+        sprint = db.sprints.find_one({
+            "_id": eval_data.sprint_id,
+            "user_id": eval_data.user_id,
+            "status": "completed"
+        })
+        
+        if not sprint:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Sprint not found or not completed"
+            )
+        
+        # Vérifier si une évaluation existe déjà
+        existing_eval = db.sprint_evaluations.find_one({"sprint_id": eval_data.sprint_id})
+        if existing_eval:
+            return existing_eval
+        
+        # Générer ou récupérer les métriques du sprint
+        metrics = _generate_mock_metrics(eval_data.sprint_id)
+        
+        # Obtenir l'évaluation de l'IA
+        evaluation = await ai_evaluator.evaluate_team_performance(metrics)
+        
+        # Enregistrer les résultats
+        result = {
+            "sprint_id": eval_data.sprint_id,
+            "team_score": evaluation.team_score,
+            "team_breakdown": evaluation.team_breakdown,
+            "individual_scores": [
+                {
+                    "name": score.name,
+                    "pseudonym": score.pseudonym,
+                    "score": score.score,
+                    "breakdown": score.breakdown,
+                    "strengths": score.strengths,
+                    "growth_suggestions": score.growth_suggestions
+                } for score in evaluation.individual_scores
+            ],
+            "recommendations": evaluation.recommendations,
+            "evaluated_at": datetime.utcnow(),
+            "user_feedback": {
+                "rating": eval_data.rating,
+                "comments": eval_data.feedback
+            }
         }
-    }
-    
-    # Sauvegarder dans la base de données
-    db.sprint_evaluations.insert_one(result)
-    
-    # Mettre à jour le statut du sprint
-    db.sprints.update_one(
-        {"_id": eval_data.sprint_id},
-        {"$set": {"status": "evaluated"}}
-    )
-    
-    return result
+        
+        # Sauvegarder dans la base de données
+        db.sprint_evaluations.insert_one(result)
+        
+        # Mettre à jour le statut du sprint
+        db.sprints.update_one(
+            {"_id": eval_data.sprint_id},
+            {"$set": {"status": "evaluated"}}
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(500, f"Evaluation failed: {str(e)}")
 
 @router.get("/{sprint_id}", response_model=SprintEvaluationResult)
 async def get_evaluation(sprint_id: str, user_id: str):
@@ -178,26 +182,6 @@ async def get_evaluation(sprint_id: str, user_id: str):
         )
     
     return evaluation
-
-        from app.models.evaluation import TeamEvaluationRequest
-        request_data = TeamEvaluationRequest(**team_metrics)
-        
-        # Envoyer à l'IA pour évaluation
-        evaluator = AIEvaluator()
-        evaluation = await evaluator.evaluate_team_performance(request_data)
-        
-        # Stocker les résultats
-        db.sprint_evaluations.insert_one({
-            "sprint_id": sprint_id,
-            "evaluation": evaluation.dict(),
-            "evaluated_at": datetime.now(),
-            "ai_model": "breakin-evaluator-v1"
-        })
-        
-        return evaluation
-        
-    except Exception as e:
-        raise HTTPException(500, f"Evaluation failed: {str(e)}")
 
 @router.get("/sprint/{sprint_id}/evaluation")
 async def get_sprint_evaluation(sprint_id: str):

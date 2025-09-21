@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.dependencies import get_db, get_current_user
-from app.models.auth import User
+from app.models.users.user_model import UserModel
 from app.schemas.feedback.schemas import (
     ReviewCreate, ReviewUpdate, ReviewOut,
     RubricCreate, RubricUpdate, RubricOut
@@ -18,7 +18,7 @@ router = APIRouter()
 @router.post("/reviews", response_model=ReviewOut)
 async def create_review(
     review: ReviewCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> ReviewOut:
     """Create a new review.
@@ -54,7 +54,7 @@ async def create_review(
 async def update_review(
     review_id: str,
     updates: ReviewUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> ReviewOut:
     """Update an existing review.
@@ -81,7 +81,7 @@ async def update_review(
 @router.post("/reviews/{review_id}/finalize", response_model=ReviewOut)
 async def finalize_review(
     review_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> ReviewOut:
     """Finalize a review.
@@ -107,7 +107,7 @@ async def finalize_review(
 async def get_review(
     review_id: str,
     include_audit: bool = False,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> ReviewOut:
     """Get a review by ID.
@@ -151,7 +151,7 @@ async def list_reviews(
     status: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> List[ReviewOut]:
     """List reviews with optional filters.
@@ -201,7 +201,7 @@ async def list_reviews(
 @router.post("/rubrics", response_model=RubricOut)
 async def create_rubric(
     rubric: RubricCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> RubricOut:
     """Create a new review rubric.
@@ -233,7 +233,7 @@ async def create_rubric(
 async def update_rubric(
     rubric_id: str,
     updates: RubricUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> RubricOut:
     """Update an existing rubric.
