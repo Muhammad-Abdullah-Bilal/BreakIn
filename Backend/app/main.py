@@ -4,7 +4,7 @@ This file creates and configures the FastAPI app, registers routers, and
 manages lifecycle events (startup/shutdown).
 """
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException as StarletteHTTPException
@@ -12,13 +12,26 @@ from fastapi import HTTPException
 import logging
 import os
 
-# Import routes
+# Import existing routes
 from app.routes import auth, sprint, feedback, health
 try:
     from app.routes import evaluation
     EVALUATION_AVAILABLE = True
 except ImportError:
     EVALUATION_AVAILABLE = False
+
+# Import new sprint task routes
+try:
+    from app.routes.sprints.task_routes import router as task_router
+    TASK_ROUTES_AVAILABLE = True
+except ImportError:
+    TASK_ROUTES_AVAILABLE = False
+
+try:
+    from app.routes.sprints.websocket_routes import router as websocket_router
+    WEBSOCKET_ROUTES_AVAILABLE = True
+except ImportError:
+    WEBSOCKET_ROUTES_AVAILABLE = False
 
 try:
     from app.routes.employer import employer_router
@@ -53,7 +66,7 @@ try:
     ANALYTICS_AVAILABLE = True
 except ImportError:
     ANALYTICS_AVAILABLE = False
-    print("Warning: Pipeline routes not available")
+    print("Warning: Analytics routes not available")
 
 # Import websocket routes
 try:
@@ -79,6 +92,14 @@ except ImportError as e:
     print(f"Intelligent jobs routes not available: {e}")
     INTELLIGENT_JOBS_AVAILABLE = False
 
+# Import services
+try:
+    from app.services.realtime_service import RealtimeService
+    realtime_service = RealtimeService()
+    REALTIME_SERVICE_AVAILABLE = True
+except ImportError:
+    REALTIME_SERVICE_AVAILABLE = False
+
 # Import configuration and database
 try:
     from app.config import settings, connect_to_mongodb, close_mongodb_connection
@@ -96,10 +117,16 @@ try:
 except ImportError:
     EVALUATOR_AVAILABLE = False
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="BreakIn Backend", version="1.0")
+    app = FastAPI(
+        title="BreakIn API",
+        description="Mentorship-first simulation platform for developer skill verification",
+        version="1.0.0",
+    )
 
     # CORS configuration
     if CONFIG_AVAILABLE:
@@ -126,6 +153,13 @@ def create_app() -> FastAPI:
     
     if EVALUATION_AVAILABLE:
         app.include_router(evaluation.router, prefix="/evaluation", tags=["Evaluation"])
+    
+    # Include new sprint task routes
+    if TASK_ROUTES_AVAILABLE:
+        app.include_router(task_router, prefix="/api/sprints", tags=["Sprint Tasks"])
+    
+    if WEBSOCKET_ROUTES_AVAILABLE:
+        app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     
     if EMPLOYER_AVAILABLE:
         app.include_router(employer_router)
@@ -211,5 +245,25 @@ if CONFIG_AVAILABLE:
     async def on_shutdown():
         logger.info("Shutting down — closing DB connections")
         close_mongodb_connection()
+else:
+    @app.on_event("startup")
+    async def startup_db_client():
+        """Initialize database connection on startup."""
+        await connect_to_mongodb()
+        logger.info("Database connected successfully")
 
+    @app.on_event("shutdown")
+    async def shutdown_db_client():
+        """Close database connection on shutdown."""
+        await close_mongodb_connection()
+        logger.info("Database connection closed")
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
