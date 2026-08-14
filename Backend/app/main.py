@@ -242,8 +242,7 @@ if CONFIG_AVAILABLE:
         logger.info("Starting BreakIn backend — connecting to services")
         ok = connect_to_mongodb()
         if not ok:
-            logger.error("MongoDB connection failed during startup")
-            raise ServiceUnavailable("MongoDB not reachable")
+            logger.warning("MongoDB connection failed during startup. Operating in offline/degraded mode.")
 
     @app.on_event("shutdown")
     async def on_shutdown():

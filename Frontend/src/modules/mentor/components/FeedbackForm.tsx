@@ -336,12 +336,27 @@ export function FeedbackForm({
         </button>
       </div>
 
-      <div className="flex justify-end space-x-2">
+      <div className="flex justify-end mt-6">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+            style={{
+              backgroundColor: '#ffffff',
+              color: '#1f2937',
+              border: '1px solid #d1d5db',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '8px'
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
           >
             Cancel
           </button>
@@ -350,14 +365,43 @@ export function FeedbackForm({
           <button
             type="button"
             onClick={handleSaveDraft}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md text-sm"
+            style={{
+              backgroundColor: '#f3f4f6',
+              color: '#1f2937',
+              border: '1px solid #e5e7eb',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '8px'
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
           >
             Save Draft
           </button>
         )}
         <button
           type="submit"
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm"
+          style={{
+            backgroundColor: '#4f46e5',
+            color: '#ffffff',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#4338ca')}
+          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#4f46e5')}
         >
           Submit Feedback
         </button>

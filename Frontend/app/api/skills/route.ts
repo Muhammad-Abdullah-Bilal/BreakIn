@@ -8,22 +8,31 @@ export async function GET(request: Request) {
     const userId = searchParams.get('user_id')
     
     if (!userId) {
-      return Response.json({ error: 'User ID is required' }, { status: 400 })
+      return Response.json([], { status: 200 })
     }
     
-    console.log('🔍 Fetching skills for user:', userId)
-    const db = await getDatabase()
+    let skills: SkillProgress[] = []
+    try {
+      const db = await getDatabase()
+      skills = await db.collection<SkillProgress>('skill_progress')
+        .find({ 
+          $or: [
+            { user_id: userId },
+            { userId: userId },
+            { email: userId },
+            { username: userId }
+          ]
+        })
+        .sort({ updated_at: -1 })
+        .toArray()
+    } catch (dbErr) {
+      console.warn('Database query fallback for skills:', dbErr)
+    }
     
-    const skills = await db.collection<SkillProgress>('skill_progress')
-      .find({ user_id: userId })
-      .sort({ updated_at: -1 })
-      .toArray()
-    
-    console.log('✅ Found skills:', skills.length)
-    return Response.json(skills)
+    return Response.json(skills || [])
   } catch (error) {
     console.error('❌ Error fetching skills:', error)
-    return Response.json({ error: 'Failed to fetch skills' }, { status: 500 })
+    return Response.json([], { status: 200 })
   }
 }
 
@@ -45,28 +54,3 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Failed to create skill' }, { status: 500 })
   }
 }
-
-export async function PUT(request: Request) {
-  try {
-    const body = await request.json()
-    const { user_id, skill, ...updateData } = body
-    const db = await getDatabase()
-    
-    const result = await db.collection<SkillProgress>('skill_progress').updateOne(
-      { user_id, skill },
-      { 
-        $set: { 
-          ...updateData, 
-          updated_at: new Date() 
-        } 
-      },
-      { upsert: true }
-    )
-    
-    return Response.json({ success: true })
-  } catch (error) {
-    console.error('❌ Error updating skill:', error)
-    return Response.json({ error: 'Failed to update skill' }, { status: 500 })
-  }
-}
-

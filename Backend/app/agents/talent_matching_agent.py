@@ -138,7 +138,7 @@ class TalentMatchingAgent(BaseAgent):
                     continue
             
             # Store matches in database
-            if self.db and all_matches:
+            if self.db is not None and all_matches:
                 await self._store_matches(all_matches)
             
             # Generate insights
@@ -174,7 +174,7 @@ class TalentMatchingAgent(BaseAgent):
     
     async def _load_developer_profiles(self, include_passive: bool = True) -> List[DeveloperProfile]:
         """Load developer profiles from database."""
-        if not self.db:
+        if self.db is None:
             return []
         
         try:
@@ -186,7 +186,7 @@ class TalentMatchingAgent(BaseAgent):
                 query["job_seeking_status"] = {"$in": ["active", "open"]}
             
             # Get user profiles
-            users = await self.db.users.find(query).to_list(length=None)
+            users = list(self.db.users.find(query))
             
             developers = []
             for user in users:
@@ -230,7 +230,7 @@ class TalentMatchingAgent(BaseAgent):
         
         try:
             # Get developer profile
-            dev_profile = await self.db.developer_profiles.find_one({"user_id": user["id"]})
+            dev_profile = self.db.developer_profiles.find_one({"user_id": user.get("id") or user.get("_id")})
             if dev_profile:
                 profile_data.update(dev_profile)
             
@@ -242,7 +242,7 @@ class TalentMatchingAgent(BaseAgent):
                 skills.update(profile_data["skills"])
             
             # Skills from projects
-            projects = await self.db.projects.find({"user_id": user["id"]}).to_list(length=None)
+            projects = list(self.db.projects.find({"user_id": user.get("id") or user.get("_id")}))
             for project in projects:
                 if "technologies" in project:
                     skills.update(project["technologies"])
@@ -638,7 +638,7 @@ class TalentMatchingAgent(BaseAgent):
     
     async def _store_matches(self, matches: List[MatchScore]) -> None:
         """Store match results in database."""
-        if not self.db:
+        if self.db is None:
             return
         
         try:
@@ -650,7 +650,7 @@ class TalentMatchingAgent(BaseAgent):
                 match_docs.append(match_doc)
             
             if match_docs:
-                await self.db.talent_matches.insert_many(match_docs)
+                self.db.talent_matches.insert_many(match_docs)
                 self.logger.info(f"Stored {len(match_docs)} matches in database")
                 
         except Exception as e:

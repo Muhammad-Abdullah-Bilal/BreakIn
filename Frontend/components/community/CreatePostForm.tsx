@@ -8,15 +8,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { forumService, feedService } from '@/lib/services/identity-api';
 import { CreatePostRequest, Tag } from '@/lib/types/community';
 import { useAuth } from '@/providers/AuthProvider';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
-import { Label } from '@/components/ui/Label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/Dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Plus,
   X,
@@ -34,7 +34,7 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/hooks/use-toast';
 
 const createPostSchema = z.object({
   title: z.string()
@@ -55,10 +55,11 @@ type CreatePostFormData = z.infer<typeof createPostSchema>;
 interface CreatePostFormProps {
   threadId?: string;
   onSuccess?: () => void;
+  onCancel?: () => void;
   className?: string;
 }
 
-export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFormProps) {
+export function CreatePostForm({ threadId, onSuccess, onCancel, className }: CreatePostFormProps) {
   const [tagInput, setTagInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   
@@ -97,7 +98,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
 
   // Create post mutation
   const createPostMutation = useMutation({
-    mutationFn: (data: CreatePostRequest) => forumService.createPost(data),
+    mutationFn: (data: CreatePostRequest) => feedService.createPost(data),
     onSuccess: (newPost) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['worldFeed'] });
@@ -130,13 +131,20 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
   const onSubmit = async (data: CreatePostFormData) => {
     if (!user) return;
 
-    const postData: CreatePostRequest = {
+    const postData: any = {
       title: data.title,
       content: data.content,
       type: data.type,
       visibility: data.visibility,
       tags: data.tags,
       threadId: data.threadId,
+      author: {
+        id: user.id || 'u_current',
+        username: user.username || 'john_mentor',
+        displayName: user.displayName || 'John Evaluator',
+        avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+        reputation: 150
+      }
     };
 
     await createPostMutation.mutateAsync(postData);
@@ -219,7 +227,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
     );
   }
 
-  const FormContent = () => (
+  const formContent = (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Author Info */}
       <div className="flex items-center gap-3">
@@ -245,7 +253,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
             value={postType}
             onValueChange={(value: any) => setValue('type', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="text-black bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -283,7 +291,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
             value={watch('visibility')}
             onValueChange={(value: any) => setValue('visibility', value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="text-black bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -318,6 +326,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
           placeholder="What's on your mind?"
           {...register('title')}
           error={errors.title?.message}
+          className="text-black bg-white placeholder:text-slate-400"
         />
       </div>
 
@@ -330,6 +339,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
           rows={6}
           {...register('content')}
           error={errors.content?.message}
+          className="text-black bg-white placeholder:text-slate-400"
         />
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>Markdown supported</span>
@@ -348,7 +358,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyPress={handleTagKeyPress}
-            className="flex-1"
+            className="text-black bg-white placeholder:text-slate-400 flex-1"
           />
           <Button
             type="button"
@@ -436,15 +446,21 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
           onClick={() => {
             reset();
             setIsOpen(false);
+            onCancel?.();
           }}
           disabled={isSubmitting}
-          className="sm:w-auto"
+          className="text-black border-slate-300 bg-white hover:bg-slate-100 hover:text-black sm:w-auto"
         >
           Cancel
         </Button>
       </div>
     </form>
   );
+
+  // If onCancel is provided, the parent component is managing the modal wrapper, so we return formContent directly.
+  if (onCancel) {
+    return formContent;
+  }
 
   // For threaded replies, render inline
   if (threadId) {
@@ -454,7 +470,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
           <CardTitle className="text-lg">Add to Discussion</CardTitle>
         </CardHeader>
         <CardContent>
-          <FormContent />
+          {formContent}
         </CardContent>
       </Card>
     );
@@ -476,7 +492,7 @@ export function CreatePostForm({ threadId, onSuccess, className }: CreatePostFor
             Create New Post
           </DialogTitle>
         </DialogHeader>
-        <FormContent />
+        {formContent}
       </DialogContent>
     </Dialog>
   );

@@ -214,8 +214,8 @@ export default function InterviewScheduler() {
   const handleScheduleInterview = () => {
     if (newInterview.candidateName && selectedDate) {
       const interview: Interview = {
-        id: Date.now().toString(),
-        candidateId: Date.now().toString(),
+        id: `int-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        candidateId: `cand-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         candidateName: newInterview.candidateName!,
         position: newInterview.position || 'Developer',
         type: newInterview.type || 'video',
@@ -238,7 +238,7 @@ export default function InterviewScheduler() {
   const handleSendMessage = () => {
     if (newMessage.candidateId && newMessage.subject && newMessage.content) {
       const message: Message = {
-        id: Date.now().toString(),
+        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         candidateId: newMessage.candidateId,
         candidateName: 'Selected Candidate',
         subject: newMessage.subject,
@@ -418,7 +418,6 @@ export default function InterviewScheduler() {
                           mode="single"
                           selected={selectedDate}
                           onSelect={setSelectedDate}
-                          initialFocus
                           className="text-white"
                         />
                       </PopoverContent>

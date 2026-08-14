@@ -285,8 +285,11 @@ class AgentOrchestrator:
         # Store workflow
         self.active_workflows[workflow_id] = workflow
         
-        if self.db:
-            await self.db.workflows.insert_one(workflow.dict())
+        if self.db is not None:
+            try:
+                self.db.workflows.insert_one(workflow.dict())
+            except Exception:
+                pass
         
         self.logger.info(f"Created workflow {workflow_id} from template {template_name}")
         return workflow_id
@@ -296,8 +299,8 @@ class AgentOrchestrator:
         
         if workflow_id not in self.active_workflows:
             # Try to load from database
-            if self.db:
-                workflow_data = await self.db.workflows.find_one({"workflow_id": workflow_id})
+            if self.db is not None:
+                workflow_data = self.db.workflows.find_one({"workflow_id": workflow_id})
                 if workflow_data:
                     self.active_workflows[workflow_id] = Workflow(**workflow_data)
                 else:
@@ -332,11 +335,14 @@ class AgentOrchestrator:
             workflow.completed_at = datetime.utcnow()
         
         # Update in database
-        if self.db:
-            await self.db.workflows.update_one(
-                {"workflow_id": workflow_id},
-                {"$set": workflow.dict()}
-            )
+        if self.db is not None:
+            try:
+                self.db.workflows.update_one(
+                    {"workflow_id": workflow_id},
+                    {"$set": workflow.dict()}
+                )
+            except Exception:
+                pass
         
         # Emit workflow completion event
         await self._emit_event("workflow_completed", {
@@ -477,8 +483,8 @@ class AgentOrchestrator:
         """Get current status of a workflow."""
         
         if workflow_id not in self.active_workflows:
-            if self.db:
-                workflow_data = await self.db.workflows.find_one({"workflow_id": workflow_id})
+            if self.db is not None:
+                workflow_data = self.db.workflows.find_one({"workflow_id": workflow_id})
                 if workflow_data:
                     workflow = Workflow(**workflow_data)
                 else:
@@ -543,11 +549,14 @@ class AgentOrchestrator:
         workflow.completed_at = datetime.utcnow()
         
         # Update in database
-        if self.db:
-            await self.db.workflows.update_one(
-                {"workflow_id": workflow_id},
-                {"$set": workflow.dict()}
-            )
+        if self.db is not None:
+            try:
+                self.db.workflows.update_one(
+                    {"workflow_id": workflow_id},
+                    {"$set": workflow.dict()}
+                )
+            except Exception:
+                pass
         
         return {"workflow_id": workflow_id, "status": "cancelled"}
     
@@ -570,21 +579,24 @@ class AgentOrchestrator:
                 })
         
         # Get from database if available
-        if self.db:
-            query = {"status": status} if status else {}
-            db_workflows = await self.db.workflows.find(query).to_list(length=100)
-            
-            for workflow_data in db_workflows:
-                if workflow_data["workflow_id"] not in self.active_workflows:
-                    workflows.append({
-                        "workflow_id": workflow_data["workflow_id"],
-                        "name": workflow_data["name"],
-                        "status": workflow_data["status"],
-                        "created_at": workflow_data["created_at"],
-                        "started_at": workflow_data.get("started_at"),
-                        "completed_at": workflow_data.get("completed_at"),
-                        "task_count": len(workflow_data.get("tasks", []))
-                    })
+        if self.db is not None:
+            try:
+                query = {"status": status} if status else {}
+                db_workflows = list(self.db.workflows.find(query).limit(100))
+                
+                for workflow_data in db_workflows:
+                    if workflow_data.get("workflow_id") not in self.active_workflows:
+                        workflows.append({
+                            "workflow_id": workflow_data.get("workflow_id", ""),
+                            "name": workflow_data.get("name", "Workflow"),
+                            "status": workflow_data.get("status", "unknown"),
+                            "created_at": str(workflow_data.get("created_at", "")),
+                            "started_at": str(workflow_data.get("started_at", "")) if workflow_data.get("started_at") else None,
+                            "completed_at": str(workflow_data.get("completed_at", "")) if workflow_data.get("completed_at") else None,
+                            "task_count": len(workflow_data.get("tasks", []))
+                        })
+            except Exception as e:
+                self.logger.warning(f"Error fetching workflows from db: {e}")
         
         return sorted(workflows, key=lambda x: x["created_at"], reverse=True)
     

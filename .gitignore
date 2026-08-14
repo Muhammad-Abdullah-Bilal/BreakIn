@@ -1,6 +1,17 @@
+# Environment files
 .env
-venv
+.env.*
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
+venv/
+env/
+.venv/
+node_modules/
+.next/
+dist/
+*.log
 test_mongodb.py
 encode_password.py
 pyrightconfig.json

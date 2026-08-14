@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from ..agents.job_radar_agent import JobRadarAgent
 from ..config import get_database
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user_optional
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/intelligent-jobs", tags=["intelligent-jobs"])
@@ -49,7 +49,7 @@ class JobTrendsResponse(BaseModel):
 async def search_jobs_with_ai(
     request: JobSearchRequest,
     db=Depends(get_database),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """Search for jobs using AI-powered scraping and analysis."""
     start_time = datetime.utcnow()
@@ -84,7 +84,8 @@ async def search_jobs_with_ai(
             timestamp=datetime.utcnow()
         )
         
-        logger.info(f"Job search completed for user {current_user.get('user_id', 'unknown')}: {response.jobs_saved} jobs saved")
+        user_id = current_user.id if current_user else "anonymous"
+        logger.info(f"Job search completed for user {user_id}: {response.jobs_saved} jobs saved")
         return response
         
     except Exception as e:
@@ -108,7 +109,7 @@ async def get_job_market_trends(
     keywords: List[str] = Query(..., description="Keywords to analyze trends for"),
     days: int = Query(7, description="Number of days to analyze", ge=1, le=30),
     db=Depends(get_database),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """Get AI-powered job market trends and insights."""
     try:
@@ -142,7 +143,8 @@ async def get_job_market_trends(
             timestamp=datetime.utcnow()
         )
         
-        logger.info(f"Job trends analysis completed for user {current_user.get('user_id', 'unknown')}: {len(recent_jobs)} jobs analyzed")
+        user_id = current_user.id if current_user else "anonymous"
+        logger.info(f"Job trends analysis completed for user {user_id}: {len(recent_jobs)} jobs analyzed")
         return response
         
     except Exception as e:
@@ -152,7 +154,7 @@ async def get_job_market_trends(
 
 @router.get("/status")
 async def get_intelligent_jobs_status(
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """Get the status of the intelligent jobs system."""
     try:

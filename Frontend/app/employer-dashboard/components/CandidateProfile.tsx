@@ -103,7 +103,7 @@ interface CandidateProfileData {
 }
 
 interface CandidateProfileProps {
-  candidate: CandidateProfileData
+  candidate: any
   isOpen: boolean
   onClose: () => void
   onContact: (candidateId: string) => void
@@ -243,12 +243,25 @@ const mockCandidate: CandidateProfileData = {
 }
 
 export default function CandidateProfile({ 
-  candidate = mockCandidate, 
+  candidate: rawCandidate, 
   isOpen, 
   onClose, 
   onContact, 
   onAddToPipeline 
 }: CandidateProfileProps) {
+  const candidate = {
+    ...mockCandidate,
+    ...rawCandidate,
+    skills: Array.isArray(rawCandidate?.skills) && typeof rawCandidate.skills[0] === 'string'
+      ? (rawCandidate.skills as string[]).map((s, idx) => ({
+          name: s,
+          level: 80 + (idx * 5) % 15,
+          category: (idx % 2 === 0 ? 'frontend' : 'backend') as any,
+          yearsOfExperience: 3,
+          lastUsed: '2024-01-01'
+        }))
+      : (rawCandidate?.skills || mockCandidate.skills)
+  }
   const [activeTab, setActiveTab] = useState('overview')
 
   const getSkillColor = (level: number) => {

@@ -50,6 +50,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { RoleGuard } from "@/components/auth/RoleGuard"
 
 export default function EmployerDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -196,7 +197,8 @@ export default function EmployerDashboard() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-black via-gray-900/95 to-blue-950/80">
+    <RoleGuard allowedRoles={['employer', 'admin']}>
+      <div className="min-h-screen flex bg-gradient-to-br from-black via-gray-900/95 to-blue-950/80">
       {/* Mobile Sidebar Toggle */}
       <button
         className="md:hidden fixed top-4 left-4 z-50 p-2 rounded bg-black/70 border border-white/10 text-white focus:outline-none"
@@ -943,5 +945,6 @@ export default function EmployerDashboard() {
         </Tabs>
       </main>
     </div>
+    </RoleGuard>
   )
 }

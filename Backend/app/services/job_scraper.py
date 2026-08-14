@@ -38,7 +38,21 @@ class JobScraper:
     """AI-powered job scraper for multiple platforms."""
     
     def __init__(self):
-        self.client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        if settings.GROQ_API_KEY:
+            self.client = openai.AsyncOpenAI(
+                api_key=settings.GROQ_API_KEY,
+                base_url=settings.OPENAI_BASE_URL or "https://api.groq.com/openai/v1"
+            )
+            self.model = settings.GROQ_MODEL
+        elif settings.OPENAI_API_KEY and settings.OPENAI_API_KEY != "placeholder-key":
+            self.client = openai.AsyncOpenAI(
+                api_key=settings.OPENAI_API_KEY,
+                base_url=settings.OPENAI_BASE_URL
+            )
+            self.model = settings.OPENAI_MODEL
+        else:
+            self.client = openai.AsyncOpenAI(api_key="placeholder-key")
+            self.model = "llama-3.3-70b-versatile"
         self.db = None
         self.session: Optional[aiohttp.ClientSession] = None
     

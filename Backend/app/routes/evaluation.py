@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from app.config import db
+from app.config import get_database
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
@@ -95,6 +95,7 @@ def _generate_mock_metrics(sprint_id: str) -> TeamEvaluationRequest:
 @router.post("/evaluate", response_model=SprintEvaluationResult)
 async def evaluate_sprint(eval_data: EvaluationRequest):
     """Évalue un sprint terminé et retourne les résultats"""
+    db = get_database()
     try:
         # Vérifier si le sprint existe et appartient à l'utilisateur
         sprint = db.sprints.find_one({
@@ -154,12 +155,15 @@ async def evaluate_sprint(eval_data: EvaluationRequest):
         
         return result
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Evaluation failed: {str(e)}")
 
 @router.get("/{sprint_id}", response_model=SprintEvaluationResult)
 async def get_evaluation(sprint_id: str, user_id: str):
     """Récupère les résultats d'évaluation d'un sprint"""
+    db = get_database()
     # Vérifier que l'utilisateur a accès à ce sprint
     sprint = db.sprints.find_one({
         "_id": sprint_id,
@@ -186,6 +190,7 @@ async def get_evaluation(sprint_id: str, user_id: str):
 @router.get("/sprint/{sprint_id}/evaluation")
 async def get_sprint_evaluation(sprint_id: str):
     """Récupère l'évaluation d'un sprint"""
+    db = get_database()
     evaluation = db.sprint_evaluations.find_one(
         {"sprint_id": sprint_id},
         sort=[("evaluated_at", -1)]
@@ -199,6 +204,7 @@ async def get_sprint_evaluation(sprint_id: str):
 @router.get("/user/{pseudonym}/evaluations")
 async def get_user_evaluations(pseudonym: str):
     """Récupère toutes les évaluations d'un utilisateur"""
+    db = get_database()
     evaluations = list(db.sprint_evaluations.find({
         "evaluation.individual_scores.pseudonym": pseudonym
     }))

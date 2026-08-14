@@ -721,7 +721,7 @@ BreakIn Team`,
               </div>
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Use {{company_name}} and {{job_title}} for personalization
+                  Use {'{{company_name}}'} and {'{{job_title}}'} for personalization
                 </div>
                 <Button onClick={handleCreateOutreach} disabled={loading}>
                   <Send className="mr-2 h-4 w-4" />

@@ -150,7 +150,7 @@ export default function SprintingPage() {
     setLiveEvents(prev => [
       {
         ...event,
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         timestamp: new Date()
       },
       ...prev.slice(0, 9) // Keep only last 10 events
@@ -210,15 +210,21 @@ export default function SprintingPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        if (data.evaluation) {
+          sessionStorage.setItem('latest_sprint_evaluation', JSON.stringify(data.evaluation));
+          sessionStorage.setItem('latest_sprint_code', code);
+        }
+
         addLiveEvent({
           user: "System",
           action: "complete",
-          message: "Task submitted successfully!"
+          message: "Task submitted and evaluated successfully!"
         });
         
         setTimeout(() => {
-          router.push(`/sprint/results?sprintId=${sprintId}&taskId=${taskId}`);
-        }, 2000);
+          router.push(`/sprint/results?sprintId=${sprintId || 'sprint'}&taskId=${taskId || 'task'}`);
+        }, 1500);
       }
     } catch (error) {
       console.error("Error submitting solution:", error);

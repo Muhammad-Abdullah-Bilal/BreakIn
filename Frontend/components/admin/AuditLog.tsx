@@ -3,18 +3,18 @@
 import React, { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { adminService } from '@/lib/services/identity-api';
-import { AuditLog } from '@/lib/types/admin';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Calendar } from '@/components/ui/Calendar';
+import { AuditLogEntry } from '@/lib/types/admin';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
 import { 
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/Popover';
+} from '@/components/ui/popover';
 import { 
   Dialog,
   DialogContent,
@@ -22,7 +22,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/Dialog';
+} from '@/components/ui/dialog';
+
 import { 
   Search,
   Calendar as CalendarIcon,
@@ -50,8 +51,28 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-import { useDebounce } from '@/hooks/use-debounce';
-import { useInView } from 'react-intersection-observer';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useState, useCallback, useEffect } from 'react';
+
+function useInView() {
+  const [inView, setInView] = useState(false);
+  const [node, setNode] = useState<HTMLElement | null>(null);
+
+  const ref = useCallback((el: HTMLElement | null) => {
+    setNode(el);
+  }, []);
+
+  useEffect(() => {
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node]);
+
+  return { ref, inView };
+}
 
 interface AuditLogFilters {
   search: string;
@@ -64,7 +85,7 @@ interface AuditLogFilters {
 }
 
 interface AuditLogDetailProps {
-  log: AuditLog;
+  log: AuditLogEntry;
 }
 
 const AuditLogDetail: React.FC<AuditLogDetailProps> = ({ log }) => {
@@ -254,7 +275,7 @@ export function AuditLog() {
     startDate: null,
     endDate: null,
   });
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const debouncedSearch = useDebounce(filters.search, 300);
@@ -559,7 +580,6 @@ export function AuditLog() {
                     mode="single"
                     selected={filters.startDate}
                     onSelect={(date) => handleFilterChange('startDate', date)}
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
@@ -576,7 +596,6 @@ export function AuditLog() {
                     mode="single"
                     selected={filters.endDate}
                     onSelect={(date) => handleFilterChange('endDate', date)}
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>

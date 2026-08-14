@@ -1,11 +1,12 @@
 // Core UI Component Library
 // Single source of truth for all UI primitives
 
-export { Button, buttonVariants } from './Button';
-export { Input } from './Input';
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './Card';
-export { Badge, badgeVariants } from './Badge';
-export { Toast, ToastProvider, ToastViewport, ToastTitle, ToastDescription, ToastAction, ToastClose, useToast, toast } from './Toast';
+export { Button, buttonVariants } from './button';
+export { Input } from './input';
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from './card';
+export { Badge, badgeVariants } from './badge';
+export { Toast, ToastProvider, ToastViewport, ToastTitle, ToastDescription, ToastAction, ToastClose } from './toast';
+export { useToast, toast } from './use-toast';
 
 // Form Controls
 export { 
@@ -17,10 +18,10 @@ export {
   SelectLabel, 
   SelectItem, 
   SelectSeparator 
-} from './Select';
-export { Checkbox } from './Checkbox';
-export { Switch } from './Switch';
-export { Textarea } from './Textarea';
+} from './select';
+export { Checkbox } from './checkbox';
+export { Switch } from './switch';
+export { Textarea } from './textarea';
 
 // Layout & Navigation
 export { 
@@ -28,7 +29,7 @@ export {
   TabsList, 
   TabsTrigger, 
   TabsContent 
-} from './Tabs';
+} from './tabs';
 
 // Overlays & Dialogs
 export {
@@ -42,7 +43,7 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
-} from './Dialog';
+} from './dialog';
 
 // Notification Components
 export { NotificationBell } from './NotificationBell';

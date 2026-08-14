@@ -21,16 +21,80 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db = Depends(get_database)
+) -> Optional[UserModel]:
+    """Get the current user if a valid token is provided, otherwise return None."""
+    if not credentials or not credentials.credentials:
+        return None
+    try:
+        payload = verify_token(credentials.credentials, "access")
+        if not payload:
+            return None
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        user_doc = db.users.find_one({"id": user_id})
+        if user_doc:
+            return UserModel(**user_doc)
+        return None
+    except Exception:
+        return None
+
+async def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db = Depends(get_database)
+) -> UserModel:
+    """Get the current authenticated user."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    if not credentials or not credentials.credentials:
+        raise credentials_exception
+    
+    try:
+        payload = verify_token(credentials.credentials, "access")
+        if payload is None:
+            raise credentials_exception
+        
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+            
+    except JWTError:
+        raise credentials_exception
+    
+    # Get user from database
+    user_doc = db.users.find_one({"id": user_id})
+    if user_doc is None:
+        # Fallback query by username or pseudonym
+        user_doc = db.users.find_one({"$or": [{"username": user_id}, {"pseudonym": user_id}]})
+    if user_doc is None:
+        raise credentials_exception
+    
+    # Convert to UserModel
+    user = UserModel(**user_doc)
+    return user
 
 class UserRole(str, Enum):
     """User roles in the system."""
     SUPER_ADMIN = "super_admin"
+    ADMIN = "admin"
     COMPANY_ADMIN = "company_admin"
     HIRING_MANAGER = "hiring_manager"
     RECRUITER = "recruiter"
+    EMPLOYER = "employer"
     HR_SPECIALIST = "hr_specialist"
     CANDIDATE = "candidate"
+    DEVELOPER = "developer"
+    JUNIOR = "junior"
+    MENTOR = "mentor"
 
 class Permission(str, Enum):
     """System permissions."""
@@ -69,7 +133,16 @@ class Permission(str, Enum):
 # Role-based permissions mapping
 ROLE_PERMISSIONS = {
     UserRole.SUPER_ADMIN: list(Permission),  # All permissions
+    UserRole.ADMIN: list(Permission),
     UserRole.COMPANY_ADMIN: [
+        Permission.CREATE_JOBS, Permission.EDIT_JOBS, Permission.DELETE_JOBS, Permission.VIEW_JOBS, Permission.PUBLISH_JOBS,
+        Permission.VIEW_CANDIDATES, Permission.CONTACT_CANDIDATES, Permission.MANAGE_APPLICATIONS,
+        Permission.CREATE_OFFERS, Permission.APPROVE_OFFERS, Permission.SEND_OFFERS, Permission.MANAGE_CONTRACTS,
+        Permission.MANAGE_TEAM, Permission.VIEW_TEAM_ACTIVITY,
+        Permission.VIEW_BILLING, Permission.MANAGE_BILLING, Permission.VIEW_REPORTS, Permission.EXPORT_DATA,
+        Permission.MANAGE_COMPANY
+    ],
+    UserRole.EMPLOYER: [
         Permission.CREATE_JOBS, Permission.EDIT_JOBS, Permission.DELETE_JOBS, Permission.VIEW_JOBS, Permission.PUBLISH_JOBS,
         Permission.VIEW_CANDIDATES, Permission.CONTACT_CANDIDATES, Permission.MANAGE_APPLICATIONS,
         Permission.CREATE_OFFERS, Permission.APPROVE_OFFERS, Permission.SEND_OFFERS, Permission.MANAGE_CONTRACTS,
@@ -93,7 +166,12 @@ ROLE_PERMISSIONS = {
         Permission.VIEW_JOBS, Permission.VIEW_CANDIDATES, Permission.MANAGE_APPLICATIONS,
         Permission.MANAGE_CONTRACTS, Permission.VIEW_TEAM_ACTIVITY, Permission.VIEW_REPORTS
     ],
-    UserRole.CANDIDATE: []  # Candidates have different permission system
+    UserRole.MENTOR: [
+        Permission.VIEW_CANDIDATES, Permission.VIEW_REPORTS
+    ],
+    UserRole.DEVELOPER: [],
+    UserRole.JUNIOR: [],
+    UserRole.CANDIDATE: []
 }
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -157,8 +235,17 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
     
-    # Get user from database
+    # Get user from database with robust lookup
     user_doc = await db.users.find_one({"id": user_id})
+    if user_doc is None:
+        try:
+            from bson import ObjectId
+            if ObjectId.is_valid(user_id):
+                user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            pass
+    if user_doc is None:
+        user_doc = await db.users.find_one({"$or": [{"email": user_id}, {"username": user_id}, {"pseudonym": user_id}]})
     if user_doc is None:
         raise credentials_exception
     
@@ -212,13 +299,37 @@ def require_permission(permission: Permission):
         return current_user
     return permission_checker
 
-def require_role(allowed_roles: List[UserRole]):
-    """Decorator to require specific role(s)."""
+def normalize_role_str(role: Optional[str]) -> str:
+    """Normalize any role alias to primary role string."""
+    if not role:
+        return "developer"
+    r = role.lower().strip()
+    if r in ["admin", "super_admin"]:
+        return "admin"
+    if r in ["mentor"]:
+        return "mentor"
+    if r in ["employer", "recruiter", "company", "company_admin", "hiring_manager", "hr_specialist"]:
+        return "employer"
+    return "developer"
+
+def require_role(allowed_roles: List[Any]):
+    """Decorator to require specific role(s) with role alias normalization."""
     def role_checker(current_user: UserModel = Depends(get_current_active_user)):
-        if current_user.role not in [role.value for role in allowed_roles]:
+        user_role_norm = normalize_role_str(current_user.role)
+        
+        # Check admin override
+        if current_user.is_admin or user_role_norm == "admin":
+            return current_user
+            
+        allowed_normalized = []
+        for r in allowed_roles:
+            val = r.value if isinstance(r, Enum) else str(r)
+            allowed_normalized.append(normalize_role_str(val))
+            
+        if user_role_norm not in allowed_normalized:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Role required: {', '.join([role.value for role in allowed_roles])}"
+                detail=f"Access forbidden: role required: {', '.join([r.value if isinstance(r, Enum) else str(r) for r in allowed_roles])}"
             )
         return current_user
     return role_checker

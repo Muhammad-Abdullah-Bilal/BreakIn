@@ -7,12 +7,13 @@ active database instance.
 
 from __future__ import annotations
 
-import os
 import logging
 import os
 from typing import List, Optional
 
-from pydantic import Field, AnyHttpUrl
+import certifi
+from fastapi import HTTPException
+from pydantic import Field
 from pydantic_settings import BaseSettings
 from pymongo import MongoClient
 from pymongo.database import Database
@@ -39,6 +40,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = Field(default_factory=lambda: [
         "http://localhost:3000",
         "http://localhost:3001", 
+        "http://localhost:3002",
         "https://*.vercel.app",
         "https://breakin.vercel.app",
         "https://breakin-frontend.vercel.app"
@@ -47,10 +49,17 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = Field(default="INFO")
 
-    # OpenAI Configuration
+    # Groq AI Configuration
+    GROQ_API_KEY: str = Field("", env="GROQ_API_KEY")
+    GROQ_MODEL: str = Field("llama-3.3-70b-versatile", env="GROQ_MODEL")
+    GROQ_MAX_TOKENS: int = Field(4000, env="GROQ_MAX_TOKENS")
+
+    # OpenAI & LLM Configuration
     OPENAI_API_KEY: str = Field("", env="OPENAI_API_KEY")
-    OPENAI_MODEL: str = Field("gpt-4o", env="OPENAI_MODEL")
+    OPENAI_BASE_URL: Optional[str] = Field(default=None, env="OPENAI_BASE_URL")
+    OPENAI_MODEL: str = Field("llama-3.3-70b-versatile", env="OPENAI_MODEL")
     OPENAI_MAX_TOKENS: int = Field(4000, env="OPENAI_MAX_TOKENS")
+    GPT_API_KEY: str = Field("", env="GPT_API_KEY")
 
     # Job Scraping Configuration
     JOB_SCRAPING_ENABLED: bool = Field(True, env="JOB_SCRAPING_ENABLED")
@@ -76,7 +85,15 @@ def connect_to_mongodb() -> bool:
     global client, db
     try:
         logger.info("Connecting to MongoDB: %s", settings.MONGO_URI)
-        client = MongoClient(settings.MONGO_URI, serverSelectionTimeoutMS=5000)
+        client = MongoClient(
+            settings.MONGO_URI,
+            tlsCAFile=certifi.where(),
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=5000,
+            maxPoolSize=50,
+            minPoolSize=5,
+            maxIdleTimeMS=30000,
+        )
         # quick ping
         client.admin.command("ping")
         db = client[settings.DB_NAME]
@@ -95,7 +112,10 @@ def get_database() -> Database:
     if db is None:
         connect_to_mongodb()
     if db is None:
-        raise RuntimeError("MongoDB is not available")
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection unavailable. In MongoDB Atlas, go to Network Access -> Add IP Address -> 'Allow Access from Anywhere (0.0.0.0/0)'."
+        )
     return db
 
 
@@ -111,5 +131,3 @@ def close_mongodb_connection() -> None:
         finally:
             client = None
             db = None
-
-

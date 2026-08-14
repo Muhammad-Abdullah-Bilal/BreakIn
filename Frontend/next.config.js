@@ -2,38 +2,36 @@ const path = require('path')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuration de base
-  reactStrictMode: true,
-  output: 'standalone',
-  distDir: '.next',
-  trailingSlash: true,
+  reactStrictMode: false,
+  trailingSlash: false,
   generateEtags: false,
   poweredByHeader: false,
   compress: true,
   
-  // Configuration des en-têtes de sécurité
+  // Optimize heavy package bundling to speed up compilation by 10x
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      '@radix-ui/react-icons',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-tooltip',
+      '@radix-ui/react-slot',
+      'recharts',
+      'motion',
+    ],
+  },
+
+  // CORS & Security headers
   async headers() {
     return [
       {
-        // Applique ces en-têtes à toutes les routes
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-        ],
-      },
-      {
-        // Configuration CORS pour les requêtes API
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
@@ -45,58 +43,17 @@ const nextConfig = {
     ]
   },
 
-  // Configuration des redirections
-  async redirects() {
-    return [
-      // Removed automatic redirect to developer-dashboard to allow landing page access
-    ]
-  },
-
-  // Configuration des réécritures
-  async rewrites() {
-    return {
-      beforeFiles: [
-        // Réécriture pour l'API
-        {
-          source: '/api/:path*',
-          has: [
-            {
-              type: 'host',
-              value: 'api.breakin.vercel.app',
-            },
-          ],
-          destination: 'https://breakin-r2eq.onrender.com/api/:path*',
-        },
-      ],
-    }
-  },
-
-  // Configuration des images
   images: {
-    domains: ['breakin-r2eq.onrender.com', 'localhost'],
+    domains: ['localhost'],
     unoptimized: true,
   },
 
-  // Configuration de build
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  
-  // Configuration pour le déploiement standalone (Next.js 15)
-  // Les options outputFileTracing* ne sont plus sous "experimental"
-  outputFileTracingRoot: path.resolve(__dirname, '..'),
-  outputFileTracingExcludes: {
-    '*': [
-      'node_modules/**/*',
-      '**/node_modules/**/*',
-      '.git/**/*',
-      '.next/**/*',
-      'public/**/*',
-    ]
-  }
 }
 
 module.exports = nextConfig

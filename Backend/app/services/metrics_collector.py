@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Dict, Optional
-from app.config import db
+from app.config import get_database
 from app.models.evaluation import DeveloperMetrics, FeatureProgress, MentorFeedback, AIEvaluation
 
 class MetricsCollector:
@@ -9,6 +9,7 @@ class MetricsCollector:
     
     async def collect_team_metrics(self) -> dict:
         """Collecte toutes les métriques de l'équipe pour l'évaluation IA"""
+        db = get_database()
         sprint = db.sprints.find_one({"_id": self.sprint_id})
         if not sprint:
             raise ValueError("Sprint not found")
@@ -73,6 +74,7 @@ class MetricsCollector:
     
     async def _get_developer_metrics(self, user_id: str, sprint: dict) -> DeveloperMetrics:
         """Récupère les métriques d'un développeur spécifique"""
+        db = get_database()
         user = db.users.find_one({"pseudonym": user_id})
         user_tasks = [t for t in sprint.get("tasks", []) if t.get("user_id") == user_id]
         

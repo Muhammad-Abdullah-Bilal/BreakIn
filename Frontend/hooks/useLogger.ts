@@ -40,10 +40,10 @@ class Logger {
       enabled: true,
       level: 'info',
       enableConsole: process.env.NODE_ENV === 'development',
-      enableSentry: process.env.NODE_ENV === 'production',
-      enableRemote: true,
+      enableSentry: false,
+      enableRemote: false,
       bufferSize: 100,
-      flushInterval: 30000, // 30 seconds
+      flushInterval: 60000,
       ...config,
     };
 
@@ -123,28 +123,11 @@ class Logger {
     if (!this.config.enableSentry || typeof window === 'undefined') return;
 
     try {
-      // Dynamic import to avoid bundling Sentry if not needed
-      const Sentry = await import('@sentry/nextjs');
-      
-      Sentry.addBreadcrumb({
-        message: entry.message,
-        level: entry.level as any,
-        timestamp: entry.timestamp.getTime() / 1000,
-        data: entry.context,
-      });
-
       if (entry.level === 'error' && entry.error) {
-        Sentry.captureException(entry.error, {
-          contexts: {
-            log: entry.context,
-          },
-          user: {
-            id: entry.userId,
-          },
-        });
+        console.error('[Error Tracker]', entry.error, entry.context);
       }
     } catch (error) {
-      console.warn('Failed to log to Sentry:', error);
+      console.warn('Failed to track error:', error);
     }
   }
 

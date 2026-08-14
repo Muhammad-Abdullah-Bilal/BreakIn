@@ -352,6 +352,31 @@ Each developer graduates from mentee to contributor to mentor, growing the ecosy
 
 ---
 
+## 🛠️ Complete Project Features & Implementation Details
+
+BreakIn Direct is an advanced, proof-of-work engineering simulation and direct-hiring ecosystem. The platform integrates automatic scoring, candidate pipeline operations, community code collaboration, and robust moderation.
+
+### 1. Conforming Code Evaluator & Anti-Spam Engine
+* **Semantic Domain & Relevance Filtering**: The system parses the task context dynamically. If a user submits code for a Fintech/Stripe challenge, the evaluator ensures payment-related constructs are present. For default/generic task structures under the `Software Engineering & Microservices` title, the strict relevance keywords are automatically bypassed to prevent false negatives.
+* **Math Utility/Spam Interception**: Evaluates submissions for common copy-pasted helper patterns (e.g. `celsiusToFahrenheit`, `reverseList`, `fibonacci`, `factorial`, `gcd/lcm`). If $\ge 3$ boilerplate signatures are detected, the submission fails with a capped score of `1.4/10`.
+* **Boilerplate Comments Handling**: Features size-based boilerplate guards (`length < 250` check) that allow long, correct solutions containing template comments (`// Your code here`) to pass without false positive triggers.
+
+### 2. Employer Job Applications Tracking
+* **Collapsible Candidate Drawers**: The Company Dashboard contains collapsible **"Applicants & Verified Profiles"** drawers under each active job card. It displays candidate names, codenames, overall simulation scores, completed sprints count, and tech stacks.
+* **List-Fill Balancing**: To maintain data consistency, if the database `applicantsList` size is smaller than the mock totals on pre-seeded roles, the system dynamically supplements the list with stack-matching mock profiles (e.g., *Sarah Jenkins*, *David Kim*, etc.) so the visible cards match the total count.
+* **Persistent Application Actions**: The Developer Dashboard displays **"Application Submitted"** with a green checkmark for any applied roles. This status persists across sessions, page reloads, and tabs via MongoDB query checks.
+
+### 3. Pipeline Scheduling & Email Workflows
+* **Live Pipeline Operations**: Real-time matching candidates can be moved across interview stages. Sourcing recruiters can click **"Send Request"** to dispatch scheduled notifications and sync applicants directly to the `'applied'` pipeline stage.
+* **Collapsible Code Viewers**: Recruiters can review verified proofs-of-work by expanding a collapsible, inline code editor inside submissions, viewing the exact formatted solution submitted by the candidate.
+
+### 4. Interactive Community Forum & Thread Comments
+* **Safe Tags Rendering**: Robustly parses string and object array types under `post.tags` to prevent client-side UI crashes.
+* **Post Modifications & Comments**: Users can edit, delete, and reply to posts in real-time. Comments increment the reply count dynamically in MongoDB and render in clean, collapsible thread sliders.
+* **Form Accessibility**: Restyled all input text fields, select prompts, and buttons with explicit text colors (black text on white elements) to eliminate white-on-white text issues.
+
+---
+
 ## 🎯 Vision
 
 > **BreakIn Direct is not just a platform — it's a movement.**

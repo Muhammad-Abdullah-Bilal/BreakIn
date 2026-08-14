@@ -5,12 +5,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { forumService } from '@/lib/services/identity-api';
 import { Thread, Reply, CreateReplyRequest, Vote, ModerationFlag } from '@/lib/types/community';
 import { useAuth } from '@/providers/AuthProvider';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
-import { Textarea } from '@/components/ui/Textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Heart,
   MessageCircle,
@@ -35,7 +35,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { CreatePostForm } from './CreatePostForm';
 

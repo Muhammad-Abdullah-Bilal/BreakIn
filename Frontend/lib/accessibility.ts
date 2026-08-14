@@ -448,23 +448,15 @@ export function useBreakpoint() {
 
 // Skip Link Component
 export function SkipLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg"
-    >
-      {children}
-    </a>
-  );
+  return React.createElement('a', {
+    href,
+    className: "sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg"
+  }, children);
 }
 
 // Screen Reader Only Text
 export function ScreenReaderOnly({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="sr-only">
-      {children}
-    </span>
-  );
+  return React.createElement('span', { className: "sr-only" }, children);
 }
 
 // Focus Visible Indicator
@@ -475,11 +467,9 @@ export function FocusRing({
   children: React.ReactNode; 
   className?: string; 
 }) {
-  return (
-    <div className={`focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 rounded ${className}`}>
-      {children}
-    </div>
-  );
+  return React.createElement('div', {
+    className: `focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 rounded ${className}`
+  }, children);
 }
 
 // Accessible Button Helper

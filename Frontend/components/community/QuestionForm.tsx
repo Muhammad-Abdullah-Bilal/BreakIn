@@ -5,18 +5,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { forumService } from '@/lib/services/identity-api';
+import { forumService, feedService } from '@/lib/services/identity-api';
 import { CreatePostRequest, Tag } from '@/lib/types/community';
 import { useAuth } from '@/providers/AuthProvider';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
-import { Label } from '@/components/ui/Label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   HelpCircle,
   Plus,
@@ -35,7 +35,7 @@ import {
   Star,
   TrendingUp
 } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 const questionSchema = z.object({
@@ -58,6 +58,8 @@ type QuestionFormData = z.infer<typeof questionSchema>;
 
 interface QuestionFormProps {
   className?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 const questionCategories = [
@@ -104,7 +106,7 @@ const answerTypes = [
   { value: 'opinion', label: 'Opinion/Experience', icon: Star, description: 'Personal experiences or opinions' },
 ];
 
-export function QuestionForm({ className }: QuestionFormProps) {
+export function QuestionForm({ className, onSuccess, onCancel }: QuestionFormProps) {
   const [tagInput, setTagInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [previewMode, setPreviewMode] = useState(false);
@@ -162,7 +164,7 @@ export function QuestionForm({ className }: QuestionFormProps) {
 
   // Create question mutation
   const createQuestionMutation = useMutation({
-    mutationFn: (data: CreatePostRequest) => forumService.createPost(data),
+    mutationFn: (data: CreatePostRequest) => feedService.createPost(data),
     onSuccess: (newPost) => {
       queryClient.invalidateQueries({ queryKey: ['worldFeed'] });
       queryClient.invalidateQueries({ queryKey: ['userPosts'] });
@@ -173,7 +175,11 @@ export function QuestionForm({ className }: QuestionFormProps) {
         icon: <CheckCircle className="h-4 w-4" />,
       });
       
-      router.push(`/community/thread/${newPost.id}`);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(`/community/thread/${newPost.id}`);
+      }
     },
     onError: (error: any) => {
       toast({
@@ -188,7 +194,7 @@ export function QuestionForm({ className }: QuestionFormProps) {
   const onSubmit = async (data: QuestionFormData) => {
     if (!user) return;
 
-    const questionData: CreatePostRequest = {
+    const questionData: any = {
       title: data.title,
       content: data.content,
       type: 'question',
@@ -200,6 +206,13 @@ export function QuestionForm({ className }: QuestionFormProps) {
         expectedAnswerType: data.expectedAnswerType,
         isUrgent: data.isUrgent,
       },
+      author: {
+        id: user.id || 'u_current',
+        username: user.username || 'john_mentor',
+        displayName: user.displayName || 'John Evaluator',
+        avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+        reputation: 150
+      }
     };
 
     await createQuestionMutation.mutateAsync(questionData);
@@ -335,6 +348,7 @@ export function QuestionForm({ className }: QuestionFormProps) {
                         placeholder="e.g., How do I implement user authentication in React?"
                         {...register('title')}
                         error={errors.title?.message}
+                        className="text-black bg-white placeholder:text-slate-400"
                       />
                       <div className="text-sm text-muted-foreground">
                         {watchedTitle.length}/200 characters
@@ -392,6 +406,7 @@ export function QuestionForm({ className }: QuestionFormProps) {
                       rows={8}
                       {...register('content')}
                       error={errors.content?.message}
+                      className="text-black bg-white placeholder:text-slate-400"
                     />
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>Markdown supported</span>
@@ -442,7 +457,7 @@ export function QuestionForm({ className }: QuestionFormProps) {
                         value={watch('expectedAnswerType')} 
                         onValueChange={(value: any) => setValue('expectedAnswerType', value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-black bg-white">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -483,7 +498,7 @@ export function QuestionForm({ className }: QuestionFormProps) {
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
                         onKeyPress={handleTagKeyPress}
-                        className="flex-1"
+                        className="text-black bg-white placeholder:text-slate-400 flex-1"
                       />
                       <Button
                         type="button"
@@ -569,9 +584,15 @@ export function QuestionForm({ className }: QuestionFormProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.push('/community')}
+                    onClick={() => {
+                      if (onCancel) {
+                        onCancel();
+                      } else {
+                        router.push('/community');
+                      }
+                    }}
                     disabled={isSubmitting}
-                    className="sm:w-auto"
+                    className="text-black border-slate-300 bg-white hover:bg-slate-100 hover:text-black sm:w-auto"
                   >
                     Cancel
                   </Button>

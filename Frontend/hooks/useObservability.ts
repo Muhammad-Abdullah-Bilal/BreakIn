@@ -134,78 +134,17 @@ export function usePerformanceMonitoring() {
 
 // Hook for user interaction tracking
 export function useUserTracking() {
-  const { logInfo } = useLogger();
   const [interactions, setInteractions] = useState<UserInteraction[]>([]);
 
-  // Track user interactions
+  // Track user interactions on demand without heavy global DOM listeners
   const trackInteraction = useCallback((interaction: Omit<UserInteraction, 'timestamp'>) => {
     const fullInteraction: UserInteraction = {
       ...interaction,
       timestamp: Date.now(),
     };
 
-    setInteractions(prev => [...prev.slice(-99), fullInteraction]); // Keep last 100 interactions
-    logInfo('User interaction tracked', fullInteraction);
-  }, [logInfo]);
-
-  // Auto-track common interactions
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const trackClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      trackInteraction({
-        type: 'click',
-        target: target.tagName + (target.id ? `#${target.id}` : '') + (target.className ? `.${target.className.split(' ')[0]}` : ''),
-        metadata: {
-          x: event.clientX,
-          y: event.clientY,
-          button: event.button,
-        },
-      });
-    };
-
-    const trackScroll = () => {
-      trackInteraction({
-        type: 'scroll',
-        metadata: {
-          scrollY: window.scrollY,
-          scrollX: window.scrollX,
-        },
-      });
-    };
-
-    const trackNavigation = () => {
-      trackInteraction({
-        type: 'navigation',
-        target: window.location.pathname,
-        metadata: {
-          referrer: document.referrer,
-        },
-      });
-    };
-
-    // Debounced scroll tracking
-    let scrollTimeout: NodeJS.Timeout;
-    const debouncedScroll = () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(trackScroll, 100);
-    };
-
-    document.addEventListener('click', trackClick);
-    window.addEventListener('scroll', debouncedScroll);
-    window.addEventListener('popstate', trackNavigation);
-
-    // Track initial page load
-    trackNavigation();
-
-    return () => {
-      document.removeEventListener('click', trackClick);
-      window.removeEventListener('scroll', debouncedScroll);
-      window.removeEventListener('popstate', trackNavigation);
-      clearTimeout(scrollTimeout);
-    };
-  }, [trackInteraction]);
+    setInteractions(prev => [...prev.slice(-49), fullInteraction]);
+  }, []);
 
   return {
     interactions,

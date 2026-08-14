@@ -11,8 +11,10 @@ export interface AdminSetting {
   description: string;
   defaultValue: any;
   sensitive: boolean;
+  isPublic?: boolean;
   updatedById?: string;
   updatedByName?: string;
+  updatedBy?: string;
   updatedAt: string;
 }
 
@@ -31,6 +33,10 @@ export interface AuditLogEntry {
   newValues?: Record<string, any>;
   severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: string;
+  sessionId?: string;
+  changes?: Record<string, any>;
+  metadata?: Record<string, any>;
+  description?: string;
 }
 
 export interface UserBan {
@@ -52,6 +58,8 @@ export interface UserBan {
 
 // Moderation Queue
 export interface ModerationQueueItem extends ModerationFlag {
+  id: string;
+  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
   targetContent?: string;
   targetAuthorId?: string;
   targetAuthorName?: string;
@@ -60,6 +68,14 @@ export interface ModerationQueueItem extends ModerationFlag {
   assignedToId?: string;
   assignedToName?: string;
   estimatedReviewTime?: number; // minutes
+  contentType?: string;
+  title?: string;
+  content?: string;
+  contentAuthor?: string;
+  contentUrl?: string;
+  reporter?: string;
+  reportedAt?: string;
+  reportReason?: string;
 }
 
 export interface ModerationAction {
@@ -100,6 +116,7 @@ export interface AdminDashboardStats {
 
 // Feature Flags
 export interface FeatureFlag {
+  id: string;
   key: string;
   name: string;
   description: string;
@@ -108,6 +125,7 @@ export interface FeatureFlag {
   targetUsers?: string[];
   targetRoles?: string[];
   conditions?: FeatureFlagCondition[];
+  environment?: string;
   createdAt: string;
   updatedAt: string;
 }

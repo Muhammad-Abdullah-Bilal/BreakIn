@@ -95,10 +95,11 @@ function MetricCard({ title, metric, icon, unit, format = 'number' }: MetricCard
           {formatValue(metric.value, format, unit)}
         </div>
         {metric.change !== undefined && (
-          <div className={`flex items-center text-xs ${getTrendColor(metric.trend)}`}>
+        <div className={`flex items-center text-xs ${getTrendColor(metric.trend)}`}>
             {getTrendIcon(metric.trend)}
             <span className="ml-1">
-              {metric.change > 0 ? '+' : ''}{metric.change} ({metric.change_percentage}%)
+              {metric.change !== undefined && (metric.change > 0 ? '+' : '')}{metric.change}
+              {metric.change_percentage !== undefined && ` (${metric.change_percentage}%)`}
             </span>
           </div>
         )}
@@ -136,18 +137,20 @@ function InsightCard({ insight }: InsightCardProps) {
   }
 
   return (
-    <Card className={`${getInsightColor(insight.impact)}`}>
+    <Card className={`${getInsightColor(insight.impact ?? 'neutral')}`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            {getInsightIcon(insight.type)}
+            {getInsightIcon(insight.type ?? 'general')}
             <CardTitle className="text-lg">{insight.title}</CardTitle>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="text-xs text-gray-500">Confidence</div>
-            <div className={`w-2 h-2 rounded-full ${getConfidenceColor(insight.confidence)}`}></div>
-            <div className="text-xs font-medium">{Math.round(insight.confidence * 100)}%</div>
-          </div>
+          {insight.confidence !== undefined && (
+            <div className="flex items-center space-x-2">
+              <div className="text-xs text-gray-500">Confidence</div>
+              <div className={`w-2 h-2 rounded-full ${getConfidenceColor(insight.confidence)}`}></div>
+              <div className="text-xs font-medium">{Math.round(insight.confidence * 100)}%</div>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -161,11 +164,34 @@ function InsightCard({ insight }: InsightCardProps) {
   )
 }
 
-interface AgentPerformanceCardProps {
-  agent: AgentPerformance
-}
-
-function AgentPerformanceCard({ agent }: AgentPerformanceCardProps) {
+// Replaces the per-agent card approach with a summary view using the actual hook data
+function AgentPerformanceSummary({ agentPerformance }: { agentPerformance: AgentPerformance }) {
+  const agentCards = [
+    {
+      name: 'Sourcing Agent',
+      type: 'job_radar',
+      metric: agentPerformance.sourcing_agent_accuracy,
+      label: 'Accuracy'
+    },
+    {
+      name: 'Outreach Agent',
+      type: 'outreach',
+      metric: agentPerformance.outreach_response_rate,
+      label: 'Response Rate'
+    },
+    {
+      name: 'Interview Agent',
+      type: 'talent_matching',
+      metric: agentPerformance.interview_conversion,
+      label: 'Conversion Rate'
+    },
+    {
+      name: 'Pipeline Agent',
+      type: 'outreach',
+      metric: agentPerformance.pipeline_velocity,
+      label: 'Pipeline Velocity'
+    },
+  ]
   const getAgentIcon = (type: string) => {
     switch (type) {
       case 'job_radar': return <Target className="h-5 w-5" />
@@ -174,102 +200,55 @@ function AgentPerformanceCard({ agent }: AgentPerformanceCardProps) {
       default: return <Brain className="h-5 w-5" />
     }
   }
-
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {getAgentIcon(agent.agent_type)}
-            <div>
-              <CardTitle className="text-lg">{agent.agent_name}</CardTitle>
-              <CardDescription className="capitalize">{agent.agent_type.replace('_', ' ')}</CardDescription>
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+      {agentCards.map((agent) => (
+        <Card key={agent.name}>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              {getAgentIcon(agent.type)}
+              <CardTitle className="text-base">{agent.name}</CardTitle>
             </div>
-          </div>
-          <Badge variant={agent.uptime_percentage > 99 ? 'default' : 'secondary'}>
-            {agent.uptime_percentage}% Uptime
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-2xl font-bold">{agent.total_operations.toLocaleString()}</div>
-            <div className="text-xs text-gray-500">Total Operations</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{agent.success_rate}%</div>
-            <div className="text-xs text-gray-500">Success Rate</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">${agent.cost_savings.toLocaleString()}</div>
-            <div className="text-xs text-gray-500">Cost Savings</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{agent.user_satisfaction}/5</div>
-            <div className="text-xs text-gray-500">User Rating</div>
-          </div>
-        </div>
-        <Separator className="my-4" />
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Accuracy Score</span>
-            <span>{agent.accuracy_score}%</span>
-          </div>
-          <Progress value={agent.accuracy_score} className="h-2" />
-          <div className="flex justify-between text-sm">
-            <span>Response Time</span>
-            <span>{agent.average_response_time}s avg</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{agent.metric?.value ?? 0}%</div>
+            <div className="text-xs text-gray-500 mt-1">{agent.label}</div>
+            {agent.metric?.change !== undefined && (
+              <div className={`text-xs mt-2 ${(agent.metric.change ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {(agent.metric.change ?? 0) > 0 ? '+' : ''}{agent.metric.change} this period
+              </div>
+            )}
+            <Progress value={agent.metric?.value ?? 0} className="h-2 mt-3" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   )
 }
 
-interface PipelineStageCardProps {
-  stage: PipelineAnalytics
-}
-
-function PipelineStageCard({ stage }: PipelineStageCardProps) {
-  const getBottleneckColor = (score: number) => {
-    if (score > 50) return 'text-red-600'
-    if (score > 25) return 'text-yellow-600'
-    return 'text-green-600'
-  }
-
+// Pipeline funnel view using conversion_funnel array
+function PipelineFunnelView({ pipelineAnalytics }: { pipelineAnalytics: PipelineAnalytics }) {
+  const stages = pipelineAnalytics.conversion_funnel ?? []
+  const maxCount = Math.max(...stages.map(s => s.candidates_count), 1)
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{stage.stage_name}</CardTitle>
-        <CardDescription>{stage.total_candidates} candidates</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <div className="text-2xl font-bold">{stage.conversion_rate}%</div>
-            <div className="text-xs text-gray-500">Conversion Rate</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{stage.average_time_in_stage} days</div>
-            <div className="text-xs text-gray-500">Avg Time</div>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Drop-off Rate</span>
-            <span>{stage.drop_off_rate}%</span>
-          </div>
-          <Progress value={100 - stage.drop_off_rate} className="h-2" />
-          <div className="flex justify-between text-sm">
-            <span>Bottleneck Score</span>
-            <span className={getBottleneckColor(stage.bottleneck_score)}>
-              {stage.bottleneck_score}/100
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      {stages.map((stage, index) => (
+        <Card key={stage.stage}>
+          <CardContent className="pt-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium">{stage.stage}</span>
+              <span className="text-sm text-gray-500">{stage.candidates_count} candidates</span>
+            </div>
+            <Progress value={(stage.candidates_count / maxCount) * 100} className="h-3" />
+            {index > 0 && stages[index - 1] && (
+              <div className="text-xs text-gray-400 mt-1">
+                {Math.round((stage.candidates_count / stages[index - 1].candidates_count) * 100)}% conversion from previous stage
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   )
 }
 
@@ -393,7 +372,7 @@ export default function AnalyticsPage() {
               />
               <MetricCard
                 title="Active Positions"
-                metric={hiringMetrics.active_positions}
+                metric={hiringMetrics.active_positions ?? hiringMetrics.active_jobs}
                 icon={<Briefcase className="h-4 w-4 text-green-600" />}
               />
               <MetricCard
@@ -403,7 +382,7 @@ export default function AnalyticsPage() {
               />
               <MetricCard
                 title="Time to Hire"
-                metric={hiringMetrics.time_to_hire}
+                metric={hiringMetrics.time_to_hire ?? hiringMetrics.avg_time_to_hire}
                 icon={<Clock className="h-4 w-4 text-orange-600" />}
                 format="days"
               />
@@ -436,19 +415,11 @@ export default function AnalyticsPage() {
         </TabsContent>
 
         <TabsContent value="agents" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {agentPerformance.map((agent, index) => (
-              <AgentPerformanceCard key={index} agent={agent} />
-            ))}
-          </div>
+          <AgentPerformanceSummary agentPerformance={agentPerformance} />
         </TabsContent>
 
         <TabsContent value="pipeline" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {pipelineAnalytics.map((stage, index) => (
-              <PipelineStageCard key={index} stage={stage} />
-            ))}
-          </div>
+          <PipelineFunnelView pipelineAnalytics={pipelineAnalytics} />
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">

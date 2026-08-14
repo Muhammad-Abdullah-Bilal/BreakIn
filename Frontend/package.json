@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "lint": "next lint",
     "start": "next start"
   },
@@ -59,6 +59,7 @@
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "monaco-editor": "^0.52.2",
+    "mongodb": "^7.5.0",
     "motion": "^12.23.12",
     "next": "^15.2.4",
     "next-themes": "latest",
@@ -74,6 +75,7 @@
     "three": "^0.179.1",
     "three-globe": "^2.44.0",
     "vaul": "latest",
+    "web-vitals": "^4.2.4",
     "zod": "^3.24.1"
   },
   "devDependencies": {

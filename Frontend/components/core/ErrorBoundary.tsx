@@ -1,15 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { useErrorTracking } from '@/hooks/useObservability';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
-  errorInfo?: React.ErrorInfo;
 }
 
 interface ErrorBoundaryProps {
@@ -18,15 +16,27 @@ interface ErrorBoundaryProps {
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
-// Hook-based error boundary wrapper for functional components
-export function useErrorBoundary() {
-  const { trackError } = useErrorTracking();
-  
-  return {
-    captureError: (error: Error, errorInfo?: { componentStack: string }) => {
-      trackError(error, errorInfo);
-    }
-  };
+function DefaultFallback({ error, reset }: { error?: Error; reset: () => void }) {
+  return (
+    <div className="min-h-[400px] flex items-center justify-center p-6">
+      <Card className="max-w-md w-full border-red-500/20 bg-slate-900 text-slate-100 shadow-xl">
+        <CardHeader className="text-center">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-400 mx-auto flex items-center justify-center mb-2">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <CardTitle className="text-xl">Something went wrong</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-sm text-slate-400">
+            {error?.message || 'An unexpected error occurred in this view.'}
+          </p>
+          <Button onClick={reset} className="bg-blue-600 hover:bg-blue-500 text-white w-full">
+            <RefreshCw className="w-4 h-4 mr-2" /> Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -36,64 +46,18 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return {
-      hasError: true,
-      error,
-    };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    this.setState({
-      error,
-      errorInfo,
-    });
-
-    // Log error to external service (Sentry, etc.)
+    console.error('ErrorBoundary caught error:', error, errorInfo);
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
-    }
-
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
-    }
-
-    // Send to observability system
-    if (typeof window !== 'undefined') {
-      // Note: This would ideally use the hook, but class components can't use hooks
-      // So we'll use the global logger directly
-      import('@/hooks/useLogger').then(({ logger }) => {
-        logger.error('ErrorBoundary caught error', error, {
-          componentStack: errorInfo.componentStack,
-          errorBoundary: true,
-        });
-      });
-
-      // Send to error tracking service (Sentry) - disabled for development
-      // TODO: Install @sentry/nextjs package for production error tracking
-      /*
-      if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-        try {
-          import('@sentry/nextjs').then((Sentry) => {
-            Sentry.captureException(error, {
-              contexts: { react: errorInfo },
-              tags: { errorBoundary: true },
-            });
-          }).catch(() => {
-            // Sentry not available, ignore
-            console.warn('Sentry not available for error tracking');
-          });
-        } catch (e) {
-          // Sentry module not installed, ignore
-          console.warn('Sentry module not found');
-        }
-      }
-      */
     }
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ hasError: false, error: undefined });
   };
 
   render() {
@@ -102,10 +66,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         const FallbackComponent = this.props.fallback;
         return <FallbackComponent error={this.state.error} reset={this.handleReset} />;
       }
-
-      return <DefaultErrorFallback error={this.state.error} reset={this.handleReset} />;
+      return <DefaultFallback error={this.state.error} reset={this.handleReset} />;
     }
-
     return this.props.children;
   }
 }

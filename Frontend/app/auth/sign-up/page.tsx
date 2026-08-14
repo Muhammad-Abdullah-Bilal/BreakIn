@@ -7,17 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/providers/AuthProvider";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, Code2, Briefcase, GraduationCap } from "lucide-react";
 import React, { useState } from "react";
-import { GlobeDemo } from "../../globe/globe";
 
 type LoadingState = 'idle' | 'loading' | 'oauth';
+type SelectableRole = 'developer' | 'employer' | 'mentor';
 
 export default function SignUpPage() {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [role, setRole] = useState<SelectableRole>("developer");
   const [activeTab, setActiveTab] = useState<"login" | "register">("register");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
@@ -44,13 +45,12 @@ export default function SignUpPage() {
     }
 
     try {
-      await signUp(email, password, { displayName: name })
-      setError(null)
-      alert('Account created. You can now sign in.')
+      await signUp(email, password, { displayName: name, role });
+      setError(null);
     } catch (err: any) {
-      setError(err?.message || 'An unexpected error occurred')
+      setError(err?.message || 'An unexpected error occurred during registration.');
     } finally {
-      setLoading('idle')
+      setLoading('idle');
     }
   };
 
@@ -93,11 +93,11 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center relative">
-      {/* Globe Background */}
-      <div className="absolute inset-0 z-0">
-        <GlobeDemo />
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white flex items-center justify-center relative p-4 overflow-hidden">
+      {/* Ambient background glows */}
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
 
       <div className="z-10 w-full max-w-md p-8">
         <Card className="bg-black/90 backdrop-blur-sm border-gray-800">
@@ -333,14 +333,64 @@ export default function SignUpPage() {
                     </div>
                   </div>
 
+                  {/* Role Selection */}
+                  <div className="space-y-2 pt-1">
+                    <Label className="text-gray-300 text-xs font-semibold uppercase tracking-wider">
+                      Select Account Type
+                    </Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRole('developer')}
+                        className={`p-2.5 rounded-lg border text-left flex flex-col items-center justify-center text-center transition-all ${
+                          role === 'developer'
+                            ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm shadow-blue-500/20'
+                            : 'bg-gray-900/60 border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                        }`}
+                      >
+                        <Code2 className={`w-5 h-5 mb-1 ${role === 'developer' ? 'text-blue-400' : 'text-gray-400'}`} />
+                        <span className="text-xs font-medium">Developer</span>
+                        <span className="text-[10px] text-gray-500 line-clamp-1">Build & Prove</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRole('employer')}
+                        className={`p-2.5 rounded-lg border text-left flex flex-col items-center justify-center text-center transition-all ${
+                          role === 'employer'
+                            ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm shadow-blue-500/20'
+                            : 'bg-gray-900/60 border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                        }`}
+                      >
+                        <Briefcase className={`w-5 h-5 mb-1 ${role === 'employer' ? 'text-blue-400' : 'text-gray-400'}`} />
+                        <span className="text-xs font-medium">Employer</span>
+                        <span className="text-[10px] text-gray-500 line-clamp-1">Hire Talent</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRole('mentor')}
+                        className={`p-2.5 rounded-lg border text-left flex flex-col items-center justify-center text-center transition-all ${
+                          role === 'mentor'
+                            ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm shadow-blue-500/20'
+                            : 'bg-gray-900/60 border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                        }`}
+                      >
+                        <GraduationCap className={`w-5 h-5 mb-1 ${role === 'mentor' ? 'text-blue-400' : 'text-gray-400'}`} />
+                        <span className="text-xs font-medium">Mentor</span>
+                        <span className="text-[10px] text-gray-500 line-clamp-1">Review & Guide</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Create Account Button */}
-                  <Button type="submit" className="w-full" disabled={loading !== 'idle'}>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white mt-2" disabled={loading !== 'idle'}>
                     {loading === 'loading' ? "Creating Account..." : "Create Account"}
                   </Button>
 
                   {/* Password requirements */}
-                  <p className="text-xs text-gray-500 mt-2">
-                    Password must be 8+ characters with uppercase, lowercase, and number
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Password must be 8+ characters
                   </p>
                 </form>
               </TabsContent>

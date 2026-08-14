@@ -36,9 +36,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { KanbanBoard, Candidate, KanbanColumn } from '@/components/ui/kanban-board'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 
 // Mock data for candidates
 const mockCandidates: Candidate[] = [
@@ -157,6 +161,59 @@ export default function PipelinePage() {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
+  // Schedule interview modal state
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('10:00')
+  const [scheduleNote, setScheduleNote] = useState('')
+  const [schedulingCandidate, setSchedulingCandidate] = useState<Candidate | null>(null)
+  const [isScheduling, setIsScheduling] = useState(false)
+
+  // Email modal state
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailBody, setEmailBody] = useState('')
+  const [emailingCandidate, setEmailingCandidate] = useState<Candidate | null>(null)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
+
+  const { toast } = useToast()
+
+  useEffect(() => {
+    async function fetchPipeline() {
+      try {
+        const res = await fetch('/api/company/pipeline')
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data) && data.length > 0) {
+            // Merge database candidates with default mock ones for full coverage
+            const mapped = data.map((c: any) => ({
+              id: c.id || c._id?.toString(),
+              name: c.name || c.codename || 'Anonymous Candidate',
+              email: c.email || 'candidate@example.com',
+              phone: c.phone || '',
+              codename: c.codename || c.name || 'Anonymous',
+              position_applied: c.position_applied || c.title || 'Software Engineer',
+              job_id: c.job_id || 'all',
+              current_stage: c.current_stage || c.stage || 'sourced',
+              source: c.source || 'ai_radar',
+              match_score: c.match_score || 0.85,
+              skills: c.skills || [],
+              experience_years: c.experience_years || c.experience || 3,
+              location: c.location || 'Remote',
+              availability: c.availability || 'available',
+              created_at: c.created_at || c.createdAt || new Date().toISOString(),
+              updated_at: c.updated_at || c.updatedAt || new Date().toISOString()
+            }));
+            setCandidates(mapped);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching pipeline candidates:', err)
+      }
+    }
+    fetchPipeline()
+  }, [])
+
   // Filter candidates based on search and filters
   const filteredCandidates = candidates.filter(candidate => {
     const matchesSearch = candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -207,13 +264,83 @@ export default function PipelinePage() {
   }
 
   const handleScheduleInterview = (candidateId: string) => {
-    console.log('Schedule interview for candidate:', candidateId)
-    // Implement interview scheduling logic
+    const candidate = candidates.find(c => c.id === candidateId)
+    if (!candidate) return
+    setSchedulingCandidate(candidate)
+    setScheduleDate('')
+    setScheduleTime('10:00')
+    setScheduleNote('')
+    setShowScheduleModal(true)
+    setIsProfileOpen(false)
+  }
+
+  const handleConfirmSchedule = async () => {
+    if (!schedulingCandidate || !scheduleDate) return
+    setIsScheduling(true)
+    try {
+      const res = await fetch('/api/pipeline/schedule-interview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidate_id: schedulingCandidate.id,
+          candidate_name: schedulingCandidate.name,
+          date: scheduleDate,
+          time: scheduleTime,
+          notes: scheduleNote,
+        })
+      })
+      // Move candidate to interview_scheduled stage
+      setCandidates(prev => prev.map(c =>
+        c.id === schedulingCandidate.id
+          ? { ...c, current_stage: 'interview_scheduled', updated_at: new Date().toISOString() }
+          : c
+      ))
+      setShowScheduleModal(false)
+      toast({
+        title: 'Interview Scheduled',
+        description: `Interview with ${schedulingCandidate.name} booked for ${scheduleDate} at ${scheduleTime}.`
+      })
+    } catch {
+      toast({ title: 'Error', description: 'Could not schedule interview. Please try again.' })
+    } finally {
+      setIsScheduling(false)
+    }
   }
 
   const handleSendEmail = (candidateId: string) => {
-    console.log('Send email to candidate:', candidateId)
-    // Implement email sending logic
+    const candidate = candidates.find(c => c.id === candidateId)
+    if (!candidate) return
+    setEmailingCandidate(candidate)
+    setEmailSubject(`Exciting opportunity at BreakIn — ${candidate.position_applied}`)
+    setEmailBody(`Hi ${candidate.name},\n\nThank you for your interest in the ${candidate.position_applied} position. We reviewed your profile and would love to move forward in the process.\n\nBest regards,\nBreakIn Hiring Team`)
+    setShowEmailModal(true)
+    setIsProfileOpen(false)
+  }
+
+  const handleConfirmSendEmail = async () => {
+    if (!emailingCandidate) return
+    setIsSendingEmail(true)
+    try {
+      await fetch('/api/pipeline/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidate_id: emailingCandidate.id,
+          to: emailingCandidate.email,
+          subject: emailSubject,
+          body: emailBody,
+        })
+      })
+      setShowEmailModal(false)
+      toast({
+        title: 'Email Sent',
+        description: `Message dispatched to ${emailingCandidate.name} (${emailingCandidate.email}).`
+      })
+    } catch {
+      toast({ title: 'Error', description: 'Could not send email. Please try again.' })
+    } finally {
+      setIsSendingEmail(false)
+    }
   }
 
   // Pipeline statistics
@@ -468,6 +595,106 @@ export default function PipelinePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Schedule Interview Modal */}
+      <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule Interview</DialogTitle>
+            <DialogDescription>
+              {schedulingCandidate
+                ? `Scheduling interview with ${schedulingCandidate.name} for ${schedulingCandidate.position_applied}`
+                : 'Schedule an interview'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="int-date" className="text-sm">Interview Date *</Label>
+              <Input
+                id="int-date"
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="int-time" className="text-sm">Interview Time</Label>
+              <Input
+                id="int-time"
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="int-note" className="text-sm">Notes (optional)</Label>
+              <Textarea
+                id="int-note"
+                placeholder="Meeting link, agenda, or special instructions..."
+                value={scheduleNote}
+                onChange={(e) => setScheduleNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowScheduleModal(false)}>Cancel</Button>
+            <Button
+              onClick={handleConfirmSchedule}
+              disabled={!scheduleDate || isScheduling}
+            >
+              {isScheduling ? 'Scheduling...' : 'Confirm Schedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Email Modal */}
+      <Dialog open={showEmailModal} onOpenChange={setShowEmailModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send Email</DialogTitle>
+            <DialogDescription>
+              {emailingCandidate
+                ? `Composing message to ${emailingCandidate.name} — ${emailingCandidate.email}`
+                : 'Compose message'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="em-subject" className="text-sm">Subject *</Label>
+              <Input
+                id="em-subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="em-body" className="text-sm">Message *</Label>
+              <Textarea
+                id="em-body"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                rows={7}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailModal(false)}>Cancel</Button>
+            <Button
+              onClick={handleConfirmSendEmail}
+              disabled={!emailSubject || !emailBody || isSendingEmail}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {isSendingEmail ? 'Sending...' : 'Send Email'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
-}
+}

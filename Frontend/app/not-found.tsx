@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/providers/AuthProvider';
 import { getHomeRoute } from '@/lib/roleRouting';
 

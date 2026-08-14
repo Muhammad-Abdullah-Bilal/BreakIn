@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   Edit, 
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { getRoleDashboardRoute } from '@/lib/roleRouting';
 
 export default function ProfilePage() {
   const { user: currentUser, updateUser } = useAuth();
@@ -292,7 +293,7 @@ export default function ProfilePage() {
                     size="sm" 
                     className="w-full justify-start border-white/10 text-white hover:bg-white/5"
                   >
-                    <Link href="/developer-dashboard">
+                    <Link href={getRoleDashboardRoute(currentUser?.role)}>
                       <Users className="h-4 w-4 mr-2" />
                       View Dashboard
                     </Link>

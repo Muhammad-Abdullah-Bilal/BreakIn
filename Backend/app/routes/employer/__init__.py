@@ -1,5 +1,6 @@
 """Employer routes package initialization."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.core.auth import require_role
 
 # Import all employer route modules
 from .job_routes import router as job_router
@@ -9,8 +10,12 @@ from .payment_routes import router as payment_router
 from .matching_routes import router as matching_router
 from .reports_routes import router as reports_router
 
-# Create main employer router
-employer_router = APIRouter(prefix="/employer", tags=["Employer"])
+# Create main employer router protected by role authorization
+employer_router = APIRouter(
+    prefix="/employer",
+    tags=["Employer"],
+    dependencies=[Depends(require_role(["employer", "admin"]))]
+)
 
 # Include all sub-routers
 employer_router.include_router(job_router)

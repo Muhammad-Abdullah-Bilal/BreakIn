@@ -5,8 +5,8 @@ import {
   ClockIcon, 
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  TrendingUpIcon,
-  TrendingDownIcon
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon
 } from '@heroicons/react/24/outline';
 
 interface SprintMetricsCardProps {

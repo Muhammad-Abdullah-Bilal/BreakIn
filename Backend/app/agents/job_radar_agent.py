@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from .base_agent import BaseAgent, AgentConfig, AgentResult
 from ..services.job_scraper import JobScraper, JobScrapingResult
+from ..config import get_database
 
 
 class JobSource(BaseModel):
@@ -47,9 +48,11 @@ class JobPosting(BaseModel):
 class JobRadarAgent(BaseAgent):
     """AI Agent for intelligently fetching and analyzing job postings using OpenAI."""
     
-    def __init__(self, config: AgentConfig, db_connection=None):
+    def __init__(self, config: Optional[AgentConfig] = None, db_connection=None):
+        if config is None:
+            config = AgentConfig(name="job_radar", description="AI Job Radar Agent")
         super().__init__(config)
-        self.db = db_connection
+        self.db = db_connection if db_connection is not None else get_database()
         self.job_scraper = JobScraper()
         self.logger = logging.getLogger(__name__)
         
@@ -180,7 +183,7 @@ class JobRadarAgent(BaseAgent):
     async def _get_recent_jobs(self, limit: int = 20) -> List[Dict[str, Any]]:
         """Get recent jobs from database for analysis."""
         try:
-            if not self.db:
+            if self.db is None:
                 return []
             
             # Get jobs from the last 7 days
@@ -192,7 +195,7 @@ class JobRadarAgent(BaseAgent):
             ).sort("created_at", -1).limit(limit)
             
             jobs = []
-            async for job_doc in cursor:
+            for job_doc in cursor:
                 jobs.append({
                     "title": job_doc.get("title", ""),
                     "company": job_doc.get("company", ""),
@@ -200,7 +203,7 @@ class JobRadarAgent(BaseAgent):
                     "description": job_doc.get("description", "")[:500],  # Truncate for analysis
                     "skills": job_doc.get("skills", []),
                     "salary_range": job_doc.get("salary_range", ""),
-                    "created_at": job_doc.get("created_at", datetime.utcnow()).isoformat()
+                    "created_at": job_doc.get("created_at", datetime.utcnow()).isoformat() if hasattr(job_doc.get("created_at"), "isoformat") else str(job_doc.get("created_at", ""))
                 })
             
             return jobs
@@ -559,7 +562,7 @@ Provide a JSON response with:
     
     async def _store_jobs(self, jobs: List[JobPosting]) -> None:
         """Store parsed jobs in database."""
-        if not self.db:
+        if self.db is None:
             return
         
         try:
@@ -572,7 +575,7 @@ Provide a JSON response with:
                 job_docs.append(job_doc)
             
             if job_docs:
-                await self.db.external_jobs.insert_many(job_docs)
+                self.db.external_jobs.insert_many(job_docs)
                 self.logger.info(f"Stored {len(job_docs)} jobs in database")
                 
         except Exception as e:

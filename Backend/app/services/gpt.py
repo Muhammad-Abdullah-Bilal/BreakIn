@@ -4,7 +4,7 @@ import logging
 import time
 from typing import Any, Dict, Optional
 import openai
-from openai import OpenAI
+from openai import AsyncOpenAI
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -16,7 +16,19 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=settings.GPT_API_KEY)
+def get_ai_client_and_model():
+    if settings.GROQ_API_KEY:
+        return AsyncOpenAI(
+            api_key=settings.GROQ_API_KEY,
+            base_url=settings.OPENAI_BASE_URL or "https://api.groq.com/openai/v1"
+        ), settings.GROQ_MODEL
+    elif settings.OPENAI_API_KEY and settings.OPENAI_API_KEY != "placeholder-key":
+        return AsyncOpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            base_url=settings.OPENAI_BASE_URL
+        ), settings.OPENAI_MODEL
+    else:
+        return AsyncOpenAI(api_key="placeholder-key"), "llama-3.3-70b-versatile"
 
 
 @retry(
@@ -26,15 +38,17 @@ client = OpenAI(api_key=settings.GPT_API_KEY)
 )
 async def chat_completion(
     messages: list[Dict[str, str]],
-    model: str = "gpt-4-turbo-preview",
+    model: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Send a chat completion request to GPT with retry logic."""
+    """Send a chat completion request with retry logic."""
+    client, default_model = get_ai_client_and_model()
+    target_model = model or default_model
     try:
         start = time.time()
         response = await client.chat.completions.create(
-            model=model,
+            model=target_model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,

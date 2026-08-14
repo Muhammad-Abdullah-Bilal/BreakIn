@@ -1,17 +1,18 @@
 // app/api/companies/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { ObjectId } from 'mongodb'
 import { getDatabase } from '@/lib/mongodb'
 import { Company } from '@/lib/models/types'
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const db = await getDatabase()
-    const { ObjectId } = require('mongodb')
     
     const company = await db.collection<Company>('companies').findOne({ 
-      _id: new ObjectId(params.id) 
+      _id: new ObjectId(id) 
     })
     
     if (!company) {

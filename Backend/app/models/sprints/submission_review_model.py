@@ -77,10 +77,12 @@ class SubmissionReviewModel(BaseModel):
     
     class Config:
         """Pydantic model configuration."""
-        allow_population_by_field_name = True
+        populate_by_name = True
         arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-        schema_extra = {
+        json_encoders = {
+            ObjectId: str
+        }
+        json_schema_extra = {
             "example": {
                 "submission_id": "507f1f77bcf86cd799439011",
                 "reviewer_id": "mentor:44",

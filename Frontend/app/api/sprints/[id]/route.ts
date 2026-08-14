@@ -1,19 +1,20 @@
 // app/api/sprints/[id]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
+import { ObjectId } from 'mongodb'
 import { getDatabase } from '@/lib/mongodb'
 import { Sprint } from '@/lib/models/types'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const db = await getDatabase()
-    const { ObjectId } = require('mongodb')
     
     const sprint = await db.collection<Sprint>('sprints').findOne({ 
-      _id: new ObjectId(params.id) 
+      _id: new ObjectId(id) 
     })
     
     if (!sprint) {
@@ -29,12 +30,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const db = await getDatabase()
-    const { ObjectId } = require('mongodb')
     
     const updateData = {
       ...body,
@@ -42,7 +43,7 @@ export async function PUT(
     }
     
     const result = await db.collection<Sprint>('sprints').updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       { $set: updateData }
     )
     

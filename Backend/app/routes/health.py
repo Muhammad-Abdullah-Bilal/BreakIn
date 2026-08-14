@@ -27,6 +27,8 @@ CPU_USAGE = Gauge('breakin_cpu_usage_percent', 'CPU usage percentage')
 START_TIME = datetime.now()
 
 
+@router.get("")
+@router.get("/")
 @router.get("/healthz")
 async def health_check(db: Database = Depends(get_db)):
     """Basic health check endpoint."""

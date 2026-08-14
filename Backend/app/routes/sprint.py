@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.config import db
+from app.config import get_database
 from pydantic import BaseModel
 import uuid
 from datetime import datetime
@@ -36,13 +36,14 @@ class Sprint(BaseModel):
 # 🚀 Démarrer un nouveau sprint
 @router.post("/start")
 def start_sprint(data: SprintStart):
+    db = get_database()
     sprint_id = str(uuid.uuid4())
     new_sprint = {
         "_id": sprint_id,
         "user_id": data.user_id,
         "theme": data.theme,
         "tasks": [],
-        "created_at": datetime.now(),  # ⚠️ Corrigé: datetime.now() au lieu de datetime
+        "created_at": datetime.now(),
         "duration_minutes": data.duration_minutes,
         "status": "active"
     }
@@ -59,12 +60,15 @@ def start_sprint(data: SprintStart):
         else:
             raise HTTPException(status_code=500, detail="Failed to create sprint")
             
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 # ✅ Soumettre une tâche
 @router.post("/submit-task")
 def submit_task(data: TaskSubmit):
+    db = get_database()
     # Vérifier si le sprint existe et appartient à l'utilisateur
     sprint = db.sprints.find_one({"_id": data.sprint_id, "user_id": data.user_id})
     if not sprint:
@@ -77,7 +81,7 @@ def submit_task(data: TaskSubmit):
     task_entry = {
         "task": data.task,
         "solution": data.solution,
-        "submitted_at": datetime.now()  # ⚠️ Corrigé: datetime.now()
+        "submitted_at": datetime.now()
     }
     
     try:
@@ -95,12 +99,15 @@ def submit_task(data: TaskSubmit):
         else:
             raise HTTPException(status_code=500, detail="Failed to submit task")
             
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 # 📋 Récupérer un sprint
 @router.get("/{sprint_id}")
 def get_sprint(sprint_id: str, user_id: str):
+    db = get_database()
     sprint = db.sprints.find_one({"_id": sprint_id, "user_id": user_id})
     if not sprint:
         raise HTTPException(status_code=404, detail="Sprint not found")
@@ -110,6 +117,7 @@ def get_sprint(sprint_id: str, user_id: str):
 # 📝 Lister tous les sprints d'un utilisateur
 @router.get("/user/{user_id}")
 def list_user_sprints(user_id: str, status: Optional[str] = None):
+    db = get_database()
     query = {"user_id": user_id}
     if status:
         query["status"] = status
@@ -125,6 +133,7 @@ def list_user_sprints(user_id: str, status: Optional[str] = None):
 # ⏹️ Terminer un sprint
 @router.post("/{sprint_id}/complete")
 def complete_sprint(sprint_id: str, user_id: str):
+    db = get_database()
     result = db.sprints.update_one(
         {"_id": sprint_id, "user_id": user_id},
         {"$set": {"status": "completed", "completed_at": datetime.now()}}
@@ -138,6 +147,7 @@ def complete_sprint(sprint_id: str, user_id: str):
 # ❌ Annuler un sprint
 @router.post("/{sprint_id}/cancel")
 def cancel_sprint(sprint_id: str, user_id: str):
+    db = get_database()
     result = db.sprints.update_one(
         {"_id": sprint_id, "user_id": user_id},
         {"$set": {"status": "cancelled", "cancelled_at": datetime.now()}}

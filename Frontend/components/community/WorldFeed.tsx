@@ -1,16 +1,24 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { feedService, forumService } from '@/lib/services/identity-api';
 import { Post, PostFilters, CreatePostRequest } from '@/lib/types/community';
 import { useAuth } from '@/providers/AuthProvider';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { 
   Heart,
   MessageCircle,
@@ -27,11 +35,32 @@ import {
   ChevronDown,
   Tag,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useToast } from '@/hooks/useToast';
-import { useInView } from 'react-intersection-observer';
+import { useToast } from '@/hooks/use-toast';
+
+function useInView() {
+  const [inView, setInView] = useState(false);
+  const [node, setNode] = useState<HTMLElement | null>(null);
+
+  const ref = useCallback((el: HTMLElement | null) => {
+    setNode(el);
+  }, []);
+
+  useEffect(() => {
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node]);
+
+  return { ref, inView };
+}
 
 interface WorldFeedProps {
   className?: string;
@@ -41,6 +70,19 @@ export function WorldFeed({ className }: WorldFeedProps) {
   const [activeFilter, setActiveFilter] = useState<'latest' | 'trending' | 'following'>('latest');
   const [selectedTag, setSelectedTag] = useState<string>('');
   const [showCreatePost, setShowCreatePost] = useState(false);
+  
+  // Comment Section states
+  const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
+  const [commentsMap, setCommentsMap] = useState<Record<string, any[]>>({});
+  const [loadingCommentsPostId, setLoadingCommentsPostId] = useState<string | null>(null);
+  const [newCommentText, setNewCommentText] = useState<string>('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Edit Post states
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -85,7 +127,7 @@ export function WorldFeed({ className }: WorldFeedProps) {
   // Like post mutation
   const likePostMutation = useMutation({
     mutationFn: ({ postId, isLiked }: { postId: string; isLiked: boolean }) =>
-      isLiked ? forumService.unlikePost(postId) : forumService.likePost(postId),
+      isLiked ? feedService.unlikePost(postId) : feedService.likePost(postId),
     onMutate: async ({ postId, isLiked }) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ['worldFeed'] });
@@ -133,7 +175,7 @@ export function WorldFeed({ className }: WorldFeedProps) {
   // Bookmark post mutation
   const bookmarkPostMutation = useMutation({
     mutationFn: ({ postId, isBookmarked }: { postId: string; isBookmarked: boolean }) =>
-      isBookmarked ? forumService.unbookmarkPost(postId) : forumService.bookmarkPost(postId),
+      isBookmarked ? feedService.unbookmarkPost(postId) : feedService.bookmarkPost(postId),
     onMutate: async ({ postId, isBookmarked }) => {
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: ['worldFeed'] });
@@ -218,6 +260,127 @@ export function WorldFeed({ className }: WorldFeedProps) {
       });
     }
   }, [toast]);
+
+  const handleToggleComments = async (postId: string) => {
+    if (activeCommentsPostId === postId) {
+      setActiveCommentsPostId(null);
+      return;
+    }
+    
+    setActiveCommentsPostId(postId);
+    setLoadingCommentsPostId(postId);
+    try {
+      const res = await feedService.getComments(postId);
+      setCommentsMap(prev => ({ ...prev, [postId]: res.data || [] }));
+    } catch (err) {
+      console.error("Failed to load comments:", err);
+    } finally {
+      setLoadingCommentsPostId(null);
+    }
+  };
+
+  const handleAddComment = async (postId: string) => {
+    if (!newCommentText.trim() || !user) return;
+    setSubmittingComment(true);
+    try {
+      const res = await feedService.createComment(postId, {
+        content: newCommentText.trim(),
+        author: {
+          id: user.id || 'u_current',
+          username: user.username || 'john_mentor',
+          displayName: user.displayName || 'John Evaluator',
+          avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+        }
+      });
+      setCommentsMap(prev => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), res]
+      }));
+      setNewCommentText('');
+      
+      // Update local item list count helper
+      queryClient.setQueryData(['worldFeed', filters], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            data: page.data.map((p: Post) => {
+              if (p.id === postId) {
+                return {
+                  ...p,
+                  repliesCount: (p.repliesCount || 0) + 1
+                };
+              }
+              return p;
+            })
+          }))
+        };
+      });
+    } catch (err) {
+      console.error("Failed to add comment:", err);
+      toast({
+        title: "Failed to add comment",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleStartEdit = (post: Post) => {
+    setEditingPost(post);
+    setEditTitle(post.title || '');
+    setEditContent(post.content || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingPost) return;
+    setUpdatingPostId(editingPost.id);
+    try {
+      await feedService.updatePost(editingPost.id, {
+        title: editTitle,
+        content: editContent
+      });
+      setEditingPost(null);
+      queryClient.invalidateQueries({ queryKey: ['worldFeed'] });
+      toast({
+        title: "Post updated",
+        description: "Your post has been successfully updated.",
+        icon: <CheckCircle className="h-4 w-4 text-green-500" />
+      });
+    } catch (err) {
+      console.error("Failed to update post:", err);
+      toast({
+        title: "Update failed",
+        description: "Could not update your post. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingPostId(null);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    try {
+      await feedService.deletePost(postId);
+      queryClient.invalidateQueries({ queryKey: ['worldFeed'] });
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully deleted.",
+        icon: <CheckCircle className="h-4 w-4 text-green-500" />
+      });
+    } catch (err) {
+      console.error("Failed to delete post:", err);
+      toast({
+        title: "Delete failed",
+        description: "Could not delete your post. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Get all posts from all pages
   const allPosts = postsData?.pages.flatMap(page => page.data) || [];
@@ -375,16 +538,16 @@ export function WorldFeed({ className }: WorldFeedProps) {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={post.author.avatarUrl} alt={post.author.displayName} />
+                      <AvatarImage src={post.author?.avatarUrl || (post.author as any)?.avatar} alt={post.author?.displayName || 'Anonymous'} />
                       <AvatarFallback>
-                        {post.author.displayName.charAt(0).toUpperCase()}
+                        {(post.author?.displayName || 'Anonymous').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{post.author.displayName}</h4>
-                        {post.author.verified && (
+                        <h4 className="font-medium">{post.author?.displayName || 'Anonymous'}</h4>
+                        {post.author?.verified && (
                           <CheckCircle className="h-4 w-4 text-blue-500" />
                         )}
                       </div>
@@ -394,9 +557,48 @@ export function WorldFeed({ className }: WorldFeedProps) {
                     </div>
                   </div>
                   
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-slate-900 border border-slate-800 text-slate-200">
+                      {user && (user.id === post.author?.id || user.username === post.author?.username) ? (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => handleStartEdit(post)}
+                            className="flex items-center gap-2 cursor-pointer hover:bg-slate-800 focus:bg-slate-800"
+                          >
+                            <Edit className="h-4 w-4 text-violet-400" />
+                            <span>Edit Post</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-slate-800" />
+                          <DropdownMenuItem
+                            onClick={() => handleDeletePost(post.id)}
+                            className="flex items-center gap-2 text-red-400 focus:text-red-400 cursor-pointer hover:bg-slate-800 focus:bg-slate-800"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span>Delete Post</span>
+                          </DropdownMenuItem>
+                        </>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            toast({
+                              title: "Post Reported",
+                              description: "Thank you for reporting. Our moderators will review this post shortly.",
+                              icon: <CheckCircle className="h-4 w-4 text-green-500" />
+                            });
+                          }}
+                          className="flex items-center gap-2 cursor-pointer hover:bg-slate-800 focus:bg-slate-800"
+                        >
+                          <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          <span>Report Post</span>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 {/* Post Content */}
@@ -410,18 +612,22 @@ export function WorldFeed({ className }: WorldFeedProps) {
                   </p>
 
                   {/* Tags */}
-                  {post.tags.length > 0 && (
+                  {Array.isArray(post.tags) && post.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {post.tags.map((tag) => (
-                        <Badge 
-                          key={tag.id} 
-                          variant="secondary" 
-                          className="cursor-pointer hover:bg-secondary/80"
-                          onClick={() => setSelectedTag(tag.name)}
-                        >
-                          #{tag.name}
-                        </Badge>
-                      ))}
+                      {post.tags.map((tag, idx) => {
+                        const tagId = typeof tag === 'object' && tag && 'id' in tag ? (tag as any).id : `tag-${idx}`;
+                        const tagName = typeof tag === 'object' && tag && 'name' in tag ? (tag as any).name : String(tag);
+                        return (
+                          <Badge 
+                            key={tagId} 
+                            variant="secondary" 
+                            className="cursor-pointer hover:bg-secondary/80"
+                            onClick={() => setSelectedTag(tagName)}
+                          >
+                            #{tagName}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -441,9 +647,14 @@ export function WorldFeed({ className }: WorldFeedProps) {
                       {post.likesCount > 0 && post.likesCount}
                     </Button>
                     
-                    <Button variant="ghost" size="sm" className="gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`gap-2 ${activeCommentsPostId === post.id ? 'text-violet-500' : ''}`}
+                      onClick={() => handleToggleComments(post.id)}
+                    >
                       <MessageCircle className="h-4 w-4" />
-                      {post.repliesCount > 0 && post.repliesCount}
+                      <span>{post.repliesCount || 0}</span>
                     </Button>
                     
                     <Button
@@ -479,6 +690,76 @@ export function WorldFeed({ className }: WorldFeedProps) {
                     )}
                   </div>
                 )}
+
+                {/* Collapsible Comments Section */}
+                {activeCommentsPostId === post.id && (
+                  <div className="mt-4 pt-4 border-t border-slate-800 space-y-4">
+                    <h4 className="text-sm font-semibold text-slate-300">Comments</h4>
+                    
+                    {/* Add Comment Input */}
+                    {user ? (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Write a comment..."
+                          value={newCommentText}
+                          onChange={(e) => setNewCommentText(e.target.value)}
+                          className="text-black bg-white flex-1 text-sm h-9"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddComment(post.id);
+                            }
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddComment(post.id)}
+                          disabled={submittingComment || !newCommentText.trim()}
+                        >
+                          Send
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Please log in to write comments.</p>
+                    )}
+
+                    {/* Comments List */}
+                    {loadingCommentsPostId === post.id ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        <span>Loading comments...</span>
+                      </div>
+                    ) : !commentsMap[post.id] || commentsMap[post.id].length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-2">No comments yet. Be the first to reply!</p>
+                    ) : (
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                        {commentsMap[post.id].map((comment: any) => (
+                          <div key={comment.id} className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={comment.author?.avatarUrl || comment.author?.avatar} alt={comment.author?.displayName || 'User'} />
+                                  <AvatarFallback className="text-[10px]">
+                                    {(comment.author?.displayName || 'U').charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs font-semibold text-slate-200">
+                                  {comment.author?.displayName || 'Anonymous'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-300 pl-8 whitespace-pre-wrap">
+                              {comment.content}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))
@@ -511,6 +792,47 @@ export function WorldFeed({ className }: WorldFeedProps) {
           </Card>
         )}
       </div>
+
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl">
+            <h3 className="text-xl font-bold mb-4 text-slate-100">Edit Post</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full text-black bg-white rounded-md p-2 border border-slate-700 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Content</label>
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={6}
+                  className="w-full text-black bg-white rounded-md p-2 border border-slate-700 focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setEditingPost(null)}
+                className="text-black bg-white border-slate-300 hover:bg-slate-100 hover:text-black"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={updatingPostId !== null}>
+                {updatingPostId ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -162,8 +162,11 @@ class OutreachAgent(BaseAgent):
         )
         
         # Store in database
-        if self.db:
-            await self.db.outreach_campaigns.insert_one(campaign.dict())
+        if self.db is not None:
+            try:
+                self.db.outreach_campaigns.insert_one(campaign.dict())
+            except Exception:
+                pass
         
         return {
             "campaign_id": campaign_id,
@@ -598,15 +601,15 @@ BreakIn Partnership Team
         test_mode = input_data.get("test_mode", True)
         
         # Load campaign
-        if not self.db:
+        if self.db is None:
             raise ValueError("Database connection required for sending campaigns")
         
-        campaign = await self.db.outreach_campaigns.find_one({"campaign_id": campaign_id})
+        campaign = self.db.outreach_campaigns.find_one({"campaign_id": campaign_id})
         if not campaign:
             raise ValueError(f"Campaign {campaign_id} not found")
         
         # Load messages for this campaign
-        messages = await self.db.outreach_messages.find({"campaign_id": campaign_id}).to_list(length=None)
+        messages = list(self.db.outreach_messages.find({"campaign_id": campaign_id}))
         
         sent_count = 0
         failed_count = 0
@@ -632,7 +635,7 @@ BreakIn Partnership Team
                         failed_count += 1
                 
                 # Update message in database
-                await self.db.outreach_messages.update_one(
+                self.db.outreach_messages.update_one(
                     {"message_id": message.message_id},
                     {"$set": message.dict()}
                 )
@@ -645,7 +648,7 @@ BreakIn Partnership Team
                 failed_count += 1
         
         # Update campaign status
-        await self.db.outreach_campaigns.update_one(
+        self.db.outreach_campaigns.update_one(
             {"campaign_id": campaign_id},
             {"$set": {"status": "sent", "sent_at": datetime.utcnow()}}
         )
@@ -697,12 +700,12 @@ BreakIn Partnership Team
         """Analyze outreach campaign responses and performance."""
         campaign_id = input_data.get("campaign_id")
         
-        if not self.db:
+        if self.db is None:
             raise ValueError("Database connection required for analysis")
         
         # Get campaign messages
         query = {"campaign_id": campaign_id} if campaign_id else {}
-        messages = await self.db.outreach_messages.find(query).to_list(length=None)
+        messages = list(self.db.outreach_messages.find(query))
         
         if not messages:
             return {"message": "No outreach messages found"}

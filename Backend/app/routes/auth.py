@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, EmailStr
 from app.config import get_database
@@ -13,6 +13,7 @@ class UserSignup(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
+    role: Optional[str] = Field("developer", description="User role: developer, employer, or mentor")
 
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
@@ -23,13 +24,23 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
     pseudonym: str
+    role: str = "developer"
 
 class UserSignin(BaseModel):
-    # Changer username -> email
-    email: EmailStr  # ou str si vous préférez
+    email: EmailStr
     password: str
 
-
+def normalize_role(role_str: Optional[str]) -> str:
+    if not role_str:
+        return "developer"
+    r = role_str.lower().strip()
+    if r in ["admin", "super_admin"]:
+        return "admin"
+    if r in ["mentor"]:
+        return "mentor"
+    if r in ["employer", "recruiter", "company", "company_admin", "hiring_manager", "hr_specialist"]:
+        return "employer"
+    return "developer"
 
 # 🔐 Signup avec hash du mot de passe
 @router.post("/signup", response_model=UserOut)
@@ -40,10 +51,20 @@ def signup(user: UserSignup):
         raise HTTPException(status_code=500, detail="Database not available")
     
     # Check if user exists
-    existing_user = db.users.find_one({"username": user.username})
+    existing_user = db.users.find_one({"$or": [{"username": user.username}, {"email": user.email}]})
     if existing_user:
-        raise HTTPException(status_code=400, detail="Username already taken")
+        raise HTTPException(status_code=400, detail="Username or email already taken")
     
+    raw_role = (user.role or "developer").lower().strip()
+    # Guard against public admin registration
+    if raw_role in ["admin", "super_admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator accounts cannot be registered publicly"
+        )
+    
+    assigned_role = normalize_role(raw_role)
+
     # Hash password
     hashed_pw = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()).decode()
     
@@ -55,7 +76,9 @@ def signup(user: UserSignup):
         "username": user.username,
         "email": user.email,
         "password": hashed_pw,
-        "pseudonym": pseudonym
+        "pseudonym": pseudonym,
+        "role": assigned_role,
+        "roles": [assigned_role]
     }
     
     # Insert into database
@@ -70,8 +93,11 @@ def signup(user: UserSignup):
 def signin(credentials: UserSignin):
     # Get database connection
     db = get_database()
-    # Chercher par email au lieu de username
-    user = db.users.find_one({"email": credentials.email})
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not available")
+        
+    # Chercher par email
+    user = db.users.find_one({"email": credentials.email.lower().strip()})
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -79,11 +105,14 @@ def signin(credentials: UserSignin):
     if not bcrypt.checkpw(credentials.password.encode(), user["password"].encode()):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    user_role = normalize_role(user.get("role") or (user.get("roles", ["developer"])[0] if user.get("roles") else "developer"))
+
     # Return token and basic user identity for frontend session management
     user_out = {
         "username": user.get("username", ""),
         "email": user.get("email", ""),
-        "pseudonym": user.get("pseudonym", "")
+        "pseudonym": user.get("pseudonym", ""),
+        "role": user_role
     }
     return JSONResponse(content={
         "message": "Signed in successfully",
@@ -95,16 +124,22 @@ def signin(credentials: UserSignin):
 @router.get("/user/{pseudonym}", response_model=UserOut)
 def get_user(pseudonym: str):
     db = get_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not available")
     user = db.users.find_one({"pseudonym": pseudonym})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    user_role = normalize_role(user.get("role") or (user.get("roles", ["developer"])[0] if user.get("roles") else "developer"))
+    user["role"] = user_role
     return UserOut(**user)
 
 # ✏️ Mise à jour dynamique
 @router.put("/user/{pseudonym}")
 def update_user(pseudonym: str, update: UserUpdate):
     db = get_database()
-    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not available")
+    update_data = {k: v for k, v in update.model_dump(exclude_unset=True).items() if v is not None}
 
     if "password" in update_data:
         update_data["password"] = bcrypt.hashpw(update_data["password"].encode(), bcrypt.gensalt()).decode()
@@ -116,19 +151,3 @@ def update_user(pseudonym: str, update: UserUpdate):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User updated"}
-
-# 🗑️ Suppression
-@router.delete("/user/{pseudonym}")
-def delete_user(pseudonym: str):
-    db = get_database()
-    result = db.users.delete_one({"pseudonym": pseudonym})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "User deleted"}
-
-# 📋 Liste des utilisateurs
-@router.get("/users", response_model=list[UserOut])
-def list_users():
-    db = get_database()
-    users = list(db.users.find())
-    return [UserOut(**user) for user in users]

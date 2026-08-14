@@ -28,41 +28,56 @@ export async function proxyToBackend(
       })
     }
     
+    // Prepare headers and forward authorization if present
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    const authHeader = request.headers.get('authorization')
+    if (authHeader) {
+      headers['Authorization'] = authHeader
+    }
+    
     // Prepare request options
     const requestOptions: RequestInit = {
       method: method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headers,
     }
     
     // Add body for POST/PUT/PATCH requests
-    if (['POST', 'PUT', 'PATCH'].includes(method) && request.body) {
-      let body = await request.json()
-      if (transformBody) {
-        body = transformBody(body)
+    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+      try {
+        let body = await request.json()
+        if (transformBody) {
+          body = transformBody(body)
+        }
+        requestOptions.body = JSON.stringify(body)
+      } catch {
+        // No json body provided
       }
-      requestOptions.body = JSON.stringify(body)
     }
-    
-    console.log(`🔍 Proxying ${method} request to:`, backendUrl.toString())
     
     const response = await fetch(backendUrl.toString(), requestOptions)
     
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`❌ Backend API error: ${response.status} ${response.statusText}`, errorText)
-      throw new Error(`Backend API error: ${response.status} ${response.statusText}`)
+      let errorMessage = `Backend API error: ${response.status} ${response.statusText}`
+      try {
+        const errorData = await response.json()
+        if (errorData?.detail) errorMessage = errorData.detail
+      } catch {}
+      
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: response.status }
+      )
     }
     
     const data = await response.json()
-    
-    console.log(`✅ Successfully proxied ${method} request`)
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    console.error('❌ Proxy request failed:', error)
+    const msg = error instanceof Error ? error.message : 'Internal proxy communication error'
     return NextResponse.json(
-      { error: `Failed to proxy request: ${error.message}` },
+      { error: `Failed to proxy request: ${msg}` },
       { status: 500 }
     )
   }

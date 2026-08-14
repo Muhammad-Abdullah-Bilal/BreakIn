@@ -1,3 +1,7 @@
+'use client';
+
+import { FullDashboardSkeleton } from '@/components/ui/DashboardSkeleton';
+
 export default function Loading() {
-  return null
+  return <FullDashboardSkeleton />;
 }

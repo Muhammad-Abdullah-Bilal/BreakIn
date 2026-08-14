@@ -1,2 +1,5 @@
-ignoredBuiltDependencies:
+allowBuilds:
+  '@sentry/cli': true
+onlyBuiltDependencies:
   - sharp
+  - "@sentry/cli"
